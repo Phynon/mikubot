@@ -1,6 +1,7 @@
 import random
 
-from nonebot import on_command
+from nonebot import on_command, CommandSession
+from .luka import Music_api
 
 
 @on_command('zai?',
@@ -41,13 +42,27 @@ async def crawl_react(session):
     await session.send(crawl[0])
 
 @on_command('sing',
-            aliases=('唱歌', '来一首', '唱一首歌'),
+            aliases=('唱歌', '来一首', '唱一首歌', '点歌'),
             only_to_me=True)
 async def sing_react(session):
-    song_list = [
-        '不理你了 哼',
-        '你才爬',
-        'バ∼カ∼',
-    ]
-    song = random.sample(song_list, 1)
-    await session.send('[CQ:music,type=163,id=1335794789]')
+    try:
+        song_name = session.get('song')
+        print(song_name)
+        song_list = Music_api().get_music_list(song_name)
+        song_id = song_list[0]['id']
+        await session.send('[CQ:music,type=163,id=%s]' % song_id)
+    except KeyError as identifier:
+        await session.send('不会唱')
+    else:
+        pass
+
+@sing_react.args_parser
+async def _(session: CommandSession):
+    stripped_arg = session.current_arg_text.strip()
+    if session.is_first_run:
+        if stripped_arg:
+            session.state['song'] = stripped_arg
+        return
+    if not stripped_arg:
+        session.pause('爬')
+    session.state[session.current_key] = stripped_arg
