@@ -49,6 +49,7 @@ async def sing_react(session):
         song_name = session.get('song')
         print(song_name)
         song_list = Music_api().get_music_list(song_name)
+        print(song_list)
         song_id = song_list[0]['id']
         await session.send('[CQ:music,type=163,id=%s]' % song_id)
     except KeyError as identifier:
