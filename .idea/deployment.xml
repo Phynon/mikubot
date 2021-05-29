@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="phynon@81.70.99.3:22 agent" remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="phynon@81.70.99.3:22 key" remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
     <serverData>
       <paths name="mirai2">
         <serverdata>
@@ -9,10 +9,10 @@
           </mappings>
         </serverdata>
       </paths>
-      <paths name="phynon@81.70.99.3:22 agent">
+      <paths name="phynon@81.70.99.3:22 key">
         <serverdata>
           <mappings>
-            <mapping deploy="/tmp/pycharm_project_392" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/phynon/opt/mikubot" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
