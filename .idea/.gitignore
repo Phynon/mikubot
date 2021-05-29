@@ -8,3 +8,5 @@
 /httpRequests/
 # personal info
 known_players.json
+.idea
+.vscode
