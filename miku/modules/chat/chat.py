@@ -48,7 +48,8 @@ async def sing_react(session):
     try:
         song_name = session.get('song')
         print(song_name)
-        song_list = Music_api().get_music_list(song_name)
+        # song_list = Music_api().get_music_list(song_name)
+        song_list = []
         print(song_list)
         song_id = song_list[0]['id']
         await session.send('[CQ:music,type=163,id=%s]' % song_id)
