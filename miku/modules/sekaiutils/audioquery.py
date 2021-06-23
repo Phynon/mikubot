@@ -1,4 +1,6 @@
 import random
+import shutil
+
 import requests
 import json
 import re
@@ -15,8 +17,10 @@ async def play_song_short(session):
     with open(asset_list_dir, 'r') as f:
         assets = json.load(f)
     asset = random.sample(list(assets.values()), 1)[0]
+    tmp_result_dir = '/home/phynon/opt/cqhttp/data/voices/tmp_result.flac'
+    shutil.copy(asset, tmp_result_dir)
     try:
-        cq_song_short = f'[CQ:record,file={asset}]'
+        cq_song_short = f'[CQ:record,file=tmp_result.flac]'
         print(cq_song_short)
         await session.send(cq_song_short)
     except Exception as identifier:
@@ -33,6 +37,7 @@ async def _(session: NLPSession):
     else:
         session.send('爬')
         return
+
 
 @on_command('request_song_short',
             only_to_me=False)
@@ -71,7 +76,7 @@ async def request_song_short(session):
                 if real_title in item:
                     song_index = index_list[idx]
                     break
-            print(f'song {song_index} {title} requested')
+            print(f'song {song_index} {real_title} alias {title} requested')
             song_index = format(int(song_index), '04d')
     asset_list_dir = os.path.join(os.path.dirname(__file__), 'asset_list.json')
     with open(asset_list_dir, 'r') as f:
@@ -79,12 +84,15 @@ async def request_song_short(session):
     asset_list = list(assets.values())
     request_list = list(filter(lambda x: re.search(song_index, x) is not None, asset_list))
     asset = random.sample(request_list, 1)[0]
+    tmp_result_dir = '/home/phynon/opt/cqhttp/data/voices/tmp_result.flac'
+    shutil.copy(asset, tmp_result_dir)
     try:
-        cq_song_short = f'[CQ:record,file={asset}]'
+        cq_song_short = f'[CQ:record,file=tmp_result.flac]'
         print(cq_song_short)
         await session.send(cq_song_short)
     except Exception as identifier:
         print(identifier)
+
 
 @request_song_short.args_parser
 async def _(session: CommandSession):
@@ -97,6 +105,7 @@ async def _(session: CommandSession):
     if not stripped_arg:
         session.finish('爬')
     session.state[session.current_key] = stripped_arg
+
 
 @on_command('get_song_list',
             aliases='更新歌曲列表',
@@ -116,8 +125,8 @@ async def get_song_list(session):
                 suffix = '.flac'
             else:
                 suffix = '_short.flac'
-            asset_url = 'https://assets.pjsek.ai/file/pjsekai-assets/'+ path + '/' + asset_name + suffix
-            asset_list.append(asset_url)
+            music_short_dir = os.path.join(os.path.dirname(__file__), f'music/short/{asset_name}/{asset_name}'+suffix)
+            asset_list.append(music_short_dir)
             song_list.append(re.search('[0-9]{4}', asset_name).group())
         keys = [str(x) for x in range(len(asset_list))]
         assets = dict(zip(keys, asset_list))
@@ -129,6 +138,51 @@ async def get_song_list(session):
                          f"有{len(keys)}段不一样的歌声。\n"
                          f"你今天想要听到谁的思念呢？")
         await session.send(get_song_info)
+    except Exception as identifier:
+        print(identifier)
+
+
+@on_command('get_song_assets',
+            aliases='更新歌曲预览',
+            only_to_me=False)
+async def get_song_list(session):
+    try:
+        url = 'https://api.pjsek.ai/assets?parent=startapp/music/short&$limit=1000&$sort[isDir]=-1&$sort[path]=1'
+        raw_data = requests.get(url)
+        data = json.loads(raw_data.content)
+        dir_list = data['data']
+        song_list = []
+        asset_list = []
+        for idx, item in enumerate(dir_list):
+            path = item['path']
+            asset_name = path.split('/')[-1]
+            if re.search('short', asset_name) is not None:
+                suffix = '.flac'
+            else:
+                suffix = '_short.flac'
+            asset_url = 'https://assets.pjsek.ai/file/pjsekai-assets/' + path + '/' + asset_name + suffix
+            asset_list.append(asset_url)
+            song_list.append(re.search('[0-9]{4}', asset_name).group())
+        for idx, item in enumerate(asset_list):
+            path = dir_list[idx]['path']
+            asset_name = path.split('/')[-1]
+            if re.search('short', asset_name) is not None:
+                suffix = '.flac'
+            else:
+                suffix = '_short.flac'
+            music_short_dir = os.path.join(os.path.dirname(__file__), f'music/short/{asset_name}/{asset_name}' + suffix)
+            if not os.path.exists(os.path.join(os.path.dirname(__file__), f'music/short/{asset_name}/')):
+                os.makedirs(os.path.join(os.path.dirname(__file__), f'music/short/{asset_name}/'))
+            if os.path.exists(music_short_dir):
+                pass
+            else:
+                print(asset_name)
+                url = asset_url = 'https://assets.pjsek.ai/file/pjsekai-assets/' + path + '/' + asset_name + suffix
+                raw_data = requests.get(url)
+                with open(music_short_dir, 'wb') as f:
+                    f.write(raw_data.content)
+
+        await session.send('歌曲文件更新完成')
     except Exception as identifier:
         print(identifier)
 
@@ -172,6 +226,7 @@ async def _(session: NLPSession):
                          current_arg=session.msg,
                          confidence=100.0)
 
+
 @on_command('add_song_alias', aliases=['add'], only_to_me=False)
 async def add_song_alias(session):
     try:
@@ -204,11 +259,12 @@ async def add_song_alias(session):
                     json.dump(song_aliases, f, indent=2, ensure_ascii=False)
                 await session.send('知道啦~')
         else:
-            real_title, confidency =  process.extractOne(title, alias_list)
+            real_title, confidency = process.extractOne(title, alias_list)
             await session.send(f'你有{confidency}%的可能在找：{real_title}')
     except Exception as identifier:
         print(identifier)
         await session.send(identifier)
+
 
 @add_song_alias.args_parser
 async def _(session: CommandSession):
