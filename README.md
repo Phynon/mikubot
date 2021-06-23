@@ -17,16 +17,14 @@ It is not sure whether the project is to be renamed.
 
 Mikubot focuses on players of [Project Sekai: Colorful Stage! featuring Hatsune Miku](http://pjsekai.sega.jp), providing a reduced number of funtional modules currently:
 - **simple chat**
-
 - **pull event ranking data and predictions**
 - **pull personal event ranking data for assigned players**
-
 - **play short records of in-game musics randomly or on demand**
+- **gacha simulation**
 
 <details>
 <summary>functions to be implemented</summary>
 
-- gacha simulation
 - refined query for player profile
 
 </details>
