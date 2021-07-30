@@ -2,4 +2,7 @@ known_players.json
 .idea
 .vscode
 *.pyc
+*.png
+*.flac
 /miku/modules/sekaiutils/music.zip
+/miku/modules/sekaiutils/sekaiprofile.zip

@@ -20,7 +20,7 @@ async def myrank_react(session):
     with open(master_dir, 'r') as f:
         master_data = json.load(f)
     try:
-        src = 'http://183.173.141.23:5000/myrank'
+        src = 'http://127.0.0.1:5000/myrank'
         uid = session.get('uid')
         event_id = master_data['event_no']
         rq = {'uid': uid, 'event_id': event_id}
@@ -44,6 +44,13 @@ async def myrank_react(session):
 @myrank_react.args_parser
 
 async def _(session: CommandSession):
+    players_dir = os.path.join(os.path.dirname(__file__), 'known_players.json')
+    with open(players_dir, 'r') as f:
+        if f.read(1):
+            f.seek(0, 0)
+            players = json.load(f)
+        else:
+            players = {}
     stripped_arg = session.current_arg_text.strip()
     if session.event['sender']['user_id'] is not None:
         user_qq = str(session.event['sender']['user_id'])

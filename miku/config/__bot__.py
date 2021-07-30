@@ -9,3 +9,4 @@ MODULES_ON = {'chat', 'sekaievent', 'sekaiutils'}
 HOST = '127.0.0.1'
 PORT = 8700
 NICKNAME = {'miku'}
+SESSION_RUNNING_EXPRESSION = '不要打扰我哦'

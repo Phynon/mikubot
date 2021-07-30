@@ -8,6 +8,13 @@ import os
 from fuzzywuzzy import fuzz, process
 from nonebot import on_command, on_natural_language, CommandSession, NLPSession, IntentCommand
 
+headers_sekaiviewer = {
+    'DNT': '1',
+    'Referer': 'https://sekai.best/',
+    'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+    'sec-ch-ua-mobile': '?0',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
 
 @on_command('play_song_short',
             aliases=('歌声', '歌曲', '今天打啥歌', '玩啥', '玩什么'),
@@ -177,8 +184,9 @@ async def get_song_list(session):
                 pass
             else:
                 print(asset_name)
-                url = asset_url = 'https://assets.pjsek.ai/file/pjsekai-assets/' + path + '/' + asset_name + suffix
-                raw_data = requests.get(url)
+                url =  'https://sekai-res.dnaroma.eu/file/sekai-assets/' + path + '/' + asset_name + suffix
+                # url = 'https://assets.pjsek.ai/file/pjsekai-assets/' + path + '/' + asset_name + suffix
+                raw_data = requests.get(url, headers=headers_sekaiviewer)
                 with open(music_short_dir, 'wb') as f:
                     f.write(raw_data.content)
 
@@ -208,7 +216,10 @@ async def get_song_titles(session):
                 song_aliases = {}
         for idx, index in enumerate(index_list):
             if index not in song_aliases.keys():
-                song_aliases[index] = [titles_ja[index], titles_zh[index]]
+                if index in titles_zh.keys():
+                    song_aliases[index] = [titles_ja[index], titles_zh[index]]
+                else:
+                    song_aliases[index] = [titles_ja[index]]
         # print(song_aliases)
         with open(song_aliases_dir, 'w') as f:
             json.dump(song_aliases, f, indent=2, ensure_ascii=False)

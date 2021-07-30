@@ -3,9 +3,10 @@ import requests
 import json
 import os
 from PIL import Image
-from io import BytesIO
-from nonebot import on_command, on_natural_language, CommandSession, NLPSession, IntentCommand
+from miku.utils import FreqLimiter
+from nonebot import on_command
 
+limiter = FreqLimiter(10)
 
 @on_command('gacha_ten',
             aliases='十连',
@@ -15,6 +16,9 @@ async def gacha_ten(session):
         user_qq = str(session.event['sender']['user_id'])
     else:
         user_qq = str(session.event['user_id'])
+    if not limiter.check(user_qq):
+        await session.finish(f'冷却中(剩余 {int(limiter.left_time(user_qq)) + 1}秒)', at_sender=True)
+    limiter.start_cd(user_qq, 5)
     gacha_list_dir = os.path.join(os.path.dirname(__file__), 'gacha_list.json')
     master_data_dir = os.path.join(os.path.dirname(__file__), '../sekaievent/master_data.json')
     cards_list_dir = os.path.join(os.path.dirname(__file__), 'cards_list.json')
@@ -188,7 +192,7 @@ async def get_cards_list(session):
                 pass
             else:
                 print(asset_name)
-                url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/thumbnail/chara/{asset_name}_normal.png'
+                url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/thumbnail/chara_rip/{asset_name}_normal.png'
                 raw_data = requests.get(url)
                 with open(chara_thumbnail_dir, 'wb') as f:
                     f.write(raw_data.content)
@@ -197,3 +201,28 @@ async def get_cards_list(session):
     except Exception as identifier:
         print(identifier)
 
+@on_command('get_cards_thumbnails',
+            aliases='更新卡牌头图',
+            only_to_me=False)
+async def get_cards_thumbnails(session):
+    try:
+        cards_list_dir = os.path.join(os.path.dirname(__file__), 'cards_list.json')
+        with open(cards_list_dir, 'r') as f:
+            data = json.load(f)
+        for item in data:
+            asset_name = item['assetbundleName']
+            chara_thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_normal.png')
+            if not os.path.exists(os.path.join(os.path.dirname(__file__), 'thumbnail/chara')):
+                os.makedirs(os.path.join(os.path.dirname(__file__), 'thumbnail/chara'))
+            if os.path.exists(chara_thumbnail_dir):
+                pass
+            else:
+                print(asset_name)
+                url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/thumbnail/chara_rip/{asset_name}_normal.png'
+                raw_data = requests.get(url)
+                with open(chara_thumbnail_dir, 'wb') as f:
+                    f.write(raw_data.content)
+        get_cards_thb = ("所有卡牌头图更新完成。")
+        await session.send(get_cards_thb)
+    except Exception as identifier:
+        print(identifier)

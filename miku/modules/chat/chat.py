@@ -40,6 +40,7 @@ async def crawl_react(session):
         '不理你了 哼',
         '你才爬',
         'バ∼カ∼',
+        '[CQ:image,file=miku_crawl.jpg]'
     ]
     crawl = random.sample(crawl_list, 1)[0]
     await session.send(crawl)
@@ -72,4 +73,68 @@ async def _(session: CommandSession):
         return
     if not stripped_arg:
         session.pause('爬')
+    session.state[session.current_key] = stripped_arg
+
+
+@on_command('usage',
+            aliases=('指南', '33'),
+            only_to_me=True)
+async def sing_react(session):
+    try:
+        await session.send('[CQ:image,file=usage_1.png]')
+        await session.send('[CQ:image,file=usage_2.png]')
+    except KeyError as identifier:
+        pass
+    else:
+        pass
+
+@on_command('set_member_ban',
+            aliases=('和我一起喝茶', '精致睡眠'),
+            only_to_me=True)
+async def set_member_ban(session):
+    try:
+        bot = session.bot
+        group_id = session.event.group_id
+        await bot.set_group_ban(group_id=group_id, user_id=session.state['user_qq'],
+                                duration=session.state['time'] * 60)
+    except KeyError as identifier:
+        pass
+    else:
+        pass
+
+@set_member_ban.args_parser
+async def _(session: CommandSession):
+    if session.event['sender']['user_id'] is not None:
+        user_qq = str(session.event['sender']['user_id'])
+    else:
+        user_qq = str(session.event['user_id'])
+    session.state['user_qq'] = user_qq
+    stripped_arg = random.randint(1, 60)
+    session.state['time'] = stripped_arg
+    session.state[session.current_key] = stripped_arg
+
+@on_command('set_member_ban_broken_love',
+            aliases='失恋',
+            only_to_me=True)
+async def set_member_ban_broken_love(session):
+    try:
+        bot = session.bot
+        group_id = session.event.group_id
+        await session.send('？')
+        await bot.set_group_ban(group_id=group_id, user_id=session.state['user_qq'],
+                                duration=session.state['time']*60)
+    except KeyError as identifier:
+        pass
+    else:
+        pass
+
+@set_member_ban_broken_love.args_parser
+async def _(session: CommandSession):
+    if session.event['sender']['user_id'] is not None:
+        user_qq = str(session.event['sender']['user_id'])
+    else:
+        user_qq = str(session.event['user_id'])
+    session.state['user_qq'] = user_qq
+    stripped_arg = random.randint(1, 2)
+    session.state['time'] = stripped_arg
     session.state[session.current_key] = stripped_arg
