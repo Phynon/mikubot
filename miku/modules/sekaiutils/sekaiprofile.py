@@ -6,10 +6,14 @@ import re
 
 import requests
 import textwrap
+import asyncio
+import nest_asyncio
 from PIL import Image, ImageDraw, ImageFont
 from miku.utils import FreqLimiter
 from nonebot import CommandSession, on_command
 from nonebot.command import _FinishException
+
+nest_asyncio.apply()
 
 players_dir = os.path.join(os.path.dirname(__file__),
                            '../sekaievent/known_players.json')
@@ -39,6 +43,384 @@ headers_pjsekai = {
 }
 
 
+async def prepare_honor_images(profile: dict) -> tuple:
+    print('prepare honor data')
+    honor_meta_url = 'https://sekai-world.github.io/sekai-master-db-diff/honors.json'
+    raw_data = requests.get(honor_meta_url, headers=headers_sekaiviewer)
+    honor_data = json.loads(raw_data.content)
+    honor_groups_url = 'https://sekai-world.github.io/sekai-master-db-diff/honorGroups.json'
+    raw_data = requests.get(honor_groups_url, headers=headers_sekaiviewer)
+    honor_groups_data = json.loads(raw_data.content)
+    honor_keys = [item['id'] for item in honor_data]
+    honor_metas = dict(zip(honor_keys, honor_data))
+    honor_groups_keys = [item['id'] for item in honor_groups_data]
+    honor_groups = dict(zip(honor_groups_keys, honor_groups_data))
+    honor_thumbnails = []
+    honor_rarities = []
+    honor_names = []
+
+    for i in range(3):
+        if f'honorId{i + 1}' not in profile:
+            image = Image.new('RGBA', [1, 1])
+            honor_thumbnails.append(image)
+            honor_names.append('')
+            honor_rarities.append('')
+            continue
+        honor_id = profile[f'honorId{i + 1}']
+        honor_id = format(int(honor_id), '04d')
+        honor_asset_name = honor_metas[int(honor_id)]['assetbundleName']
+        honor_group_id = honor_metas[int(honor_id)]['groupId']
+        if 'backgroundAssetbundleName' in honor_groups[int(honor_group_id)]:
+            honor_asset_name = honor_groups[int(honor_group_id)]['backgroundAssetbundleName']
+        if not os.path.exists(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    f'assets/honor/{honor_asset_name}/degree_main.png')):
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/honor/{honor_asset_name}')):
+                os.mkdir(
+                    os.path.join(os.path.dirname(__file__),
+                                 f'assets/honor/{honor_asset_name}'))
+            asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/honor/{honor_asset_name}_rip/degree_main.png'
+            raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
+            with open(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/honor/{honor_asset_name}/degree_main.png'),
+                    'wb') as f:
+                f.write(raw_data.content)
+        image = Image.open(
+            os.path.join(os.path.dirname(__file__),
+                         f'assets/honor/{honor_asset_name}/degree_main.png'))
+        honor_thumbnails.append(image)
+        honor_names.append(honor_metas[int(honor_id)]['name'])
+        honor_rarities.append(honor_metas[int(honor_id)]['honorRarity'])
+
+    return honor_thumbnails, honor_names, honor_rarities
+
+
+async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx: int, deck_images: list, leader: list) -> tuple:
+    default_image = user_cards[idx]['defaultImage']
+    assetbundle_name = deck_assets[str(card_id)]
+    if default_image == 'original':
+        asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/normal/normal.png'
+        if not os.path.exists(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
+                )):
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}'
+                    )):
+                os.mkdir(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}'
+                    ))
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}/normal'
+                    )):
+                os.mkdir(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}/normal'
+                    ))
+            raw_data = requests.get(asset_url, headers=headers_pjsekai)
+            with open(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
+                    ), 'wb') as f:
+                f.write(raw_data.content)
+        image = Image.open(
+            os.path.join(
+                os.path.dirname(__file__),
+                f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
+            ))
+        deck_images.append(image)
+        if idx == 0:
+            asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_normal.png'
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_small/{assetbundle_name}/card_normal.png'
+                    )):
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_small/{assetbundle_name}'
+                        )):
+                    os.mkdir(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_small/{assetbundle_name}'
+                        ))
+                raw_data = requests.get(asset_url, headers=headers_pjsekai)
+                with open(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_small/{assetbundle_name}/card_normal.png'
+                        ), 'wb') as f:
+                    f.write(raw_data.content)
+            leader.append(Image.open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    f'assets/character/member_small/{assetbundle_name}/card_normal.png'
+                )))
+    else:
+        asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+        if not os.path.exists(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+                )):
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}'
+                    )):
+                os.mkdir(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}'
+                    ))
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}/after_training'
+                    )):
+                os.mkdir(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}/after_training'
+                    ))
+            raw_data = requests.get(asset_url, headers=headers_pjsekai)
+            with open(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+                    ), 'wb') as f:
+                f.write(raw_data.content)
+        image = Image.open(
+            os.path.join(
+                os.path.dirname(__file__),
+                f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+            ))
+        deck_images.append(image)
+        if idx == 0:
+            asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_after_training.png'
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
+                    )):
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_small/{assetbundle_name}'
+                        )):
+                    os.mkdir(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_small/{assetbundle_name}'
+                        ))
+                raw_data = requests.get(asset_url, headers=headers_pjsekai)
+                with open(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
+                        ), 'wb') as f:
+                    f.write(raw_data.content)
+            leader.append(Image.open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
+                )))
+    print(idx)
+
+async def prepare_deck_images(data: dict) -> tuple:
+    print('prepare deck data')
+    cards_list_dir = os.path.join(os.path.dirname(__file__),
+                                  'cards_list.json')
+    with open(cards_list_dir, 'r', encoding='utf-8') as f:
+        cards = json.load(f)
+    deck_list = []
+    deck_assets = {}
+    deck_images = []
+    deck_rarities = {}
+    deck_frame_ids = []
+    user_cards = []
+    time.sleep(0.01)
+    for idx in range(5):
+        deck_list.append(data['userDecks'][0][f'member{idx + 1}'])
+        for card in data['userCards']:
+            if card['cardId'] == data['userDecks'][0][f'member{idx + 1}']:
+                user_cards.append(card)
+    for idx, card in enumerate(cards):
+        if card['id'] in deck_list:
+            deck_assets[f"{card['id']}"] = card['assetbundleName']
+            deck_rarities[f"{card['id']}"] = card['rarity']
+    leader = []
+    tasks = []
+    loop = asyncio.get_event_loop()
+    for idx, card_id in enumerate(deck_list):
+        deck_frame_ids.append(deck_rarities[str(card_id)])
+        coro = get_card_assets(user_cards, deck_assets, card_id, idx, deck_images, leader)
+        tasks.append(loop.create_task(coro))
+    loop.run_until_complete(asyncio.wait(tasks))
+    loop.close
+    """
+    for idx, card_id in enumerate(deck_list):
+        default_image = user_cards[idx]['defaultImage']
+        assetbundle_name = deck_assets[str(card_id)]
+        deck_frame_ids.append(deck_rarities[str(card_id)])
+        if default_image == 'original':
+            asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/normal/normal.png'
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
+                    )):
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}'
+                        )):
+                    os.mkdir(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}'
+                        ))
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}/normal'
+                        )):
+                    os.mkdir(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}/normal'
+                        ))
+                raw_data = requests.get(asset_url, headers=headers_pjsekai)
+                with open(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
+                        ), 'wb') as f:
+                    f.write(raw_data.content)
+            image = Image.open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
+                ))
+            deck_images.append(image)
+            if idx == 0:
+                asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_normal.png'
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_small/{assetbundle_name}/card_normal.png'
+                        )):
+                    if not os.path.exists(
+                            os.path.join(
+                                os.path.dirname(__file__),
+                                f'assets/character/member_small/{assetbundle_name}'
+                            )):
+                        os.mkdir(
+                            os.path.join(
+                                os.path.dirname(__file__),
+                                f'assets/character/member_small/{assetbundle_name}'
+                            ))
+                    raw_data = requests.get(asset_url, headers=headers_pjsekai)
+                    with open(
+                            os.path.join(
+                                os.path.dirname(__file__),
+                                f'assets/character/member_small/{assetbundle_name}/card_normal.png'
+                            ), 'wb') as f:
+                        f.write(raw_data.content)
+                leader = Image.open(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_small/{assetbundle_name}/card_normal.png'
+                    ))
+        else:
+            asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+                    )):
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}'
+                        )):
+                    os.mkdir(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}'
+                        ))
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}/after_training'
+                        )):
+                    os.mkdir(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}/after_training'
+                        ))
+                raw_data = requests.get(asset_url, headers=headers_pjsekai)
+                with open(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+                        ), 'wb') as f:
+                    f.write(raw_data.content)
+            image = Image.open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+                ))
+            deck_images.append(image)
+            if idx == 0:
+                asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_after_training.png'
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
+                        )):
+                    if not os.path.exists(
+                            os.path.join(
+                                os.path.dirname(__file__),
+                                f'assets/character/member_small/{assetbundle_name}'
+                            )):
+                        os.mkdir(
+                            os.path.join(
+                                os.path.dirname(__file__),
+                                f'assets/character/member_small/{assetbundle_name}'
+                            ))
+                    raw_data = requests.get(asset_url, headers=headers_pjsekai)
+                    with open(
+                            os.path.join(
+                                os.path.dirname(__file__),
+                                f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
+                            ), 'wb') as f:
+                        f.write(raw_data.content)
+                leader = Image.open(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
+                    ))
+        """
+    return deck_images, deck_frame_ids, leader
+
 @on_command('myprofile', aliases=['me', 'profile'], only_to_me=False)
 async def myprofile(session):
     try:
@@ -59,6 +441,20 @@ async def myprofile(session):
             '01_01', '01_02', '02_01', '02_02', '03_01', '03_02', '04_01',
             '04_02', '05_01', '05_02', '06_01', '06_02'
         ]
+        honor_coro = prepare_honor_images(profile)
+        deck_coro = prepare_deck_images(data)
+        loop = asyncio.get_event_loop()
+        tasks = [loop.create_task(honor_coro), loop.create_task(deck_coro)]
+        loop.run_until_complete(asyncio.wait(tasks))
+        loop.close
+        try:
+            honor_thumbnails, honor_names, honor_rarities = tasks[0].result()
+            deck_images, deck_frame_ids, leader = tasks[1].result()
+        except Exception as identifier:
+            print(repr(identifier))
+            print(identifier)
+
+        """
         # honor data
         print('prepare honor data')
         honor_meta_url = 'https://sekai-world.github.io/sekai-master-db-diff/honors.json'
@@ -122,7 +518,8 @@ async def myprofile(session):
             honor_thumbnails.append(image)
             honor_names.append(honor_metas[int(honor_id)]['name'])
             honor_rarities.append(honor_metas[int(honor_id)]['honorRarity'])
-
+        """
+        """
         # deck data
         print('prepare deck data')
         cards_list_dir = os.path.join(os.path.dirname(__file__),
@@ -288,7 +685,7 @@ async def myprofile(session):
                             os.path.dirname(__file__),
                             f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
                         ))
-
+        """
         # music data
         print('prepare music data')
         musics = data['userMusics']
@@ -399,7 +796,7 @@ async def myprofile(session):
                   font=font_t_en,
                   stroke_width=1)
         # main
-        leader = leader.resize((600, 338), Image.ANTIALIAS)
+        leader = leader[0].resize((600, 338), Image.ANTIALIAS)
         # print(leader.size)
         mask = Image.new('RGBA', (600, 338))
         draw_mask = ImageDraw.Draw(mask)
@@ -585,8 +982,8 @@ async def myprofile(session):
             tmp.paste(im=img, box=((220 + 25) * idx + 80, 1000), mask=img)
             tmp.paste(im=frame, box=((220 + 25) * idx + 80, 1000), mask=frame)
 
-        # part 4 challange
-        print('prepare challange')
+        # part 4 challenge
+        print('prepare challenge')
         # title border
         draw.rounded_rectangle(xy=[1362, 100, 2102, 180],
                                radius=20,
@@ -862,7 +1259,7 @@ async def myprofile(session):
                   fill='#ffffff',
                   font=font_t2_en,
                   stroke_width=1)
-        pallete_diff = ['#67dc11', '#33bbed', '#ffaa00', '#ee4566', '#bb33ef']
+        palette_diff = ['#67dc11', '#33bbed', '#ffaa00', '#ee4566', '#bb33ef']
         for row in range(3):
             for col in range(5):
                 draw.rounded_rectangle(xy=[(110 + 60) * col + 400,
@@ -870,7 +1267,7 @@ async def myprofile(session):
                                            (110 + 60) * col + 540,
                                            (60 + 20) * row + 1700],
                                        radius=20,
-                                       fill=pallete_diff[col],
+                                       fill=palette_diff[col],
                                        outline='#e6e6e6',
                                        width=0)
                 draw.text(xy=((110 + 60) * col + 470, (60 + 20) * row + 1684),
