@@ -8,6 +8,7 @@ import requests
 import textwrap
 import asyncio
 import nest_asyncio
+import httpx
 from PIL import Image, ImageDraw, ImageFont
 from miku.utils import FreqLimiter
 from nonebot import CommandSession, on_command
@@ -101,11 +102,12 @@ async def prepare_honor_images(profile: dict) -> tuple:
     return honor_thumbnails, honor_names, honor_rarities
 
 
-async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx: int, deck_images: list, leader: list) -> tuple:
+async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: int, idx: int, deck_images: list, leader: list) -> tuple:
     default_image = user_cards[idx]['defaultImage']
     assetbundle_name = deck_assets[str(card_id)]
+
     if default_image == 'original':
-        asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/normal/normal.png'
+        asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_cutout/{assetbundle_name}_rip/normal.png'
         if not os.path.exists(
                 os.path.join(
                     os.path.dirname(__file__),
@@ -131,7 +133,7 @@ async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx
                         os.path.dirname(__file__),
                         f'assets/character/member_cutout/{assetbundle_name}/normal'
                     ))
-            raw_data = requests.get(asset_url, headers=headers_pjsekai)
+            raw_data = await client.get(asset_url, headers=headers_sekaiviewer)
             with open(
                     os.path.join(
                         os.path.dirname(__file__),
@@ -145,7 +147,7 @@ async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx
             ))
         deck_images.append(image)
         if idx == 0:
-            asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_normal.png'
+            asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_small/{assetbundle_name}_rip/card_normal.png'
             if not os.path.exists(
                     os.path.join(
                         os.path.dirname(__file__),
@@ -161,7 +163,7 @@ async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx
                             os.path.dirname(__file__),
                             f'assets/character/member_small/{assetbundle_name}'
                         ))
-                raw_data = requests.get(asset_url, headers=headers_pjsekai)
+                raw_data = await client.get(asset_url, headers=headers_sekaiviewer)
                 with open(
                         os.path.join(
                             os.path.dirname(__file__),
@@ -174,7 +176,7 @@ async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx
                     f'assets/character/member_small/{assetbundle_name}/card_normal.png'
                 )))
     else:
-        asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
+        asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_cutout/{assetbundle_name}_rip/after_training.png'
         if not os.path.exists(
                 os.path.join(
                     os.path.dirname(__file__),
@@ -200,7 +202,7 @@ async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx
                         os.path.dirname(__file__),
                         f'assets/character/member_cutout/{assetbundle_name}/after_training'
                     ))
-            raw_data = requests.get(asset_url, headers=headers_pjsekai)
+            raw_data = await client.get(asset_url, headers=headers_sekaiviewer)
             with open(
                     os.path.join(
                         os.path.dirname(__file__),
@@ -214,7 +216,7 @@ async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx
             ))
         deck_images.append(image)
         if idx == 0:
-            asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_after_training.png'
+            asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_small/{assetbundle_name}_rip/card_after_training.png'
             if not os.path.exists(
                     os.path.join(
                         os.path.dirname(__file__),
@@ -230,7 +232,7 @@ async def get_card_assets(user_cards: list, deck_assets: dict, card_id: int, idx
                             os.path.dirname(__file__),
                             f'assets/character/member_small/{assetbundle_name}'
                         ))
-                raw_data = requests.get(asset_url, headers=headers_pjsekai)
+                raw_data = await client.get(asset_url, headers=headers_sekaiviewer)
                 with open(
                         os.path.join(
                             os.path.dirname(__file__),
@@ -267,14 +269,13 @@ async def prepare_deck_images(data: dict) -> tuple:
             deck_assets[f"{card['id']}"] = card['assetbundleName']
             deck_rarities[f"{card['id']}"] = card['rarity']
     leader = []
-    tasks = []
-    loop = asyncio.get_event_loop()
-    for idx, card_id in enumerate(deck_list):
-        deck_frame_ids.append(deck_rarities[str(card_id)])
-        coro = get_card_assets(user_cards, deck_assets, card_id, idx, deck_images, leader)
-        tasks.append(loop.create_task(coro))
-    loop.run_until_complete(asyncio.wait(tasks))
-    loop.close
+    async with httpx.AsyncClient() as client:
+        tasks = []
+        for idx, card_id in enumerate(deck_list):
+            deck_frame_ids.append(deck_rarities[str(card_id)])
+            coro = get_card_assets(client, user_cards, deck_assets, card_id, idx, deck_images, leader)
+            tasks.append(asyncio.create_task(coro))
+    await asyncio.gather(*tasks)
     """
     for idx, card_id in enumerate(deck_list):
         default_image = user_cards[idx]['defaultImage']
@@ -425,7 +426,6 @@ async def prepare_deck_images(data: dict) -> tuple:
 async def myprofile(session):
     try:
         # 'Connection': 'close'
-        requests.adapters.DEFAULT_RETRIES = 5
         src = 'http://127.0.0.1:5000/profile'
         uid = session.get('uid')
         if not limiter.check('profile'):
