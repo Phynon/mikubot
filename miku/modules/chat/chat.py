@@ -1,4 +1,6 @@
 import random
+
+import nonebot
 from nonebot import on_command, CommandSession
 
 
@@ -138,3 +140,25 @@ async def _(session: CommandSession):
     stripped_arg = random.randint(1, 2)
     session.state['time'] = stripped_arg
     session.state[session.current_key] = stripped_arg
+
+
+@nonebot.scheduler.scheduled_job(
+    'cron',
+    # year=None,
+    # month=None,
+    # day=None,
+    # week=None,
+    day_of_week="mon,tue,wed,thu,fri",
+    hour=7,
+    # minute=None,
+    # second=None,
+    # start_date=None,
+    # end_date=None,
+    # timezone=None,
+)
+async def _():
+    with open('meta', 'r') as f:
+        group_id = f.readline()
+    bot = nonebot.get_bot()
+    await bot.send_group_msg(group_id=group_id,
+                             message='起床啦！')
