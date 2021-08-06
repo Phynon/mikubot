@@ -21,6 +21,8 @@ Mikubot focuses on players of [Project Sekai: Colorful Stage! featuring Hatsune 
 - **pull personal event ranking data for assigned players**
 - **play short records of in-game musics randomly or on demand**
 - **gacha simulation**
+- **user profile image generation**
+- **scheduled tasks to fetch in-game metas**
 
 <details>
 <summary>functions to be implemented</summary>
@@ -32,8 +34,7 @@ Mikubot focuses on players of [Project Sekai: Colorful Stage! featuring Hatsune 
 <details>
 <summary>functions in far future plans</summary>
 
-- user profile image generation
-- refined query for player profile
+- refined query for player music profile
 
 </details>
 
