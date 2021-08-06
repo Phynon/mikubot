@@ -133,7 +133,7 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
                         os.path.dirname(__file__),
                         f'assets/character/member_cutout/{assetbundle_name}/normal'
                     ))
-            raw_data = await client.get(asset_url, headers=headers_sekaiviewer)
+            raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
             with open(
                     os.path.join(
                         os.path.dirname(__file__),
@@ -163,7 +163,7 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
                             os.path.dirname(__file__),
                             f'assets/character/member_small/{assetbundle_name}'
                         ))
-                raw_data = await client.get(asset_url, headers=headers_sekaiviewer)
+                raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
                 with open(
                         os.path.join(
                             os.path.dirname(__file__),
@@ -202,7 +202,7 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
                         os.path.dirname(__file__),
                         f'assets/character/member_cutout/{assetbundle_name}/after_training'
                     ))
-            raw_data = await client.get(asset_url, headers=headers_sekaiviewer)
+            raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
             with open(
                     os.path.join(
                         os.path.dirname(__file__),
@@ -232,7 +232,7 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
                             os.path.dirname(__file__),
                             f'assets/character/member_small/{assetbundle_name}'
                         ))
-                raw_data = await client.get(asset_url, headers=headers_sekaiviewer)
+                raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
                 with open(
                         os.path.join(
                             os.path.dirname(__file__),

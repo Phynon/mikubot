@@ -8,6 +8,15 @@ from nonebot import on_command
 
 limiter = FreqLimiter(10)
 
+headers_sekaiviewer = {
+    'DNT': '1',
+    'Referer': 'https://sekai.best/',
+    'cache-control': 'max-age=0',
+    'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+    'sec-ch-ua-mobile': '?0',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
+
 @on_command('gacha_ten',
             aliases='十连',
             only_to_me=True)
@@ -175,7 +184,7 @@ async def get_gacha_list(session):
 async def get_cards_list(session):
     try:
         url = 'https://sekai-world.github.io/sekai-master-db-diff/cards.json'
-        raw_data = requests.get(url)
+        raw_data = requests.get(url, headers=headers_sekaiviewer)
         data = json.loads(raw_data.content)
         cards_list_dir = os.path.join(os.path.dirname(__file__), 'cards_list.json')
         with open(cards_list_dir, 'w') as f:
@@ -193,7 +202,7 @@ async def get_cards_list(session):
             else:
                 print(asset_name)
                 url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/thumbnail/chara_rip/{asset_name}_normal.png'
-                raw_data = requests.get(url)
+                raw_data = requests.get(url, headers=headers_sekaiviewer)
                 with open(chara_thumbnail_dir, 'wb') as f:
                     f.write(raw_data.content)
         get_cards_thb = ("所有卡牌头图更新完成。")
@@ -226,3 +235,9 @@ async def get_cards_thumbnails(session):
         await session.send(get_cards_thb)
     except Exception as identifier:
         print(identifier)
+
+'''
+@on_command('show_gacha_list',
+            aliases='查看卡池',
+            only_to_me=False):
+            '''
