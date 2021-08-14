@@ -16,15 +16,6 @@ from nonebot.command import _FinishException
 
 nest_asyncio.apply()
 
-players_dir = os.path.join(os.path.dirname(__file__),
-                           '../sekaievent/known_players.json')
-with open(players_dir, 'r') as f:
-    if f.read(1):
-        f.seek(0, 0)
-        players = json.load(f)
-    else:
-        players = {}
-
 limiter = FreqLimiter(10)
 
 headers_sekaiviewer = {
@@ -102,7 +93,7 @@ async def prepare_honor_images(profile: dict) -> tuple:
     return honor_thumbnails, honor_names, honor_rarities
 
 
-async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: int, idx: int, deck_images: list, leader: list) -> tuple:
+async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: int, idx: int, deck_images: list, leader: list):
     default_image = user_cards[idx]['defaultImage']
     assetbundle_name = deck_assets[str(card_id)]
 
@@ -249,7 +240,7 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
 async def prepare_deck_images(data: dict) -> tuple:
     print('prepare deck data')
     cards_list_dir = os.path.join(os.path.dirname(__file__),
-                                  'cards_list.json')
+                                  '../metas/cards_list.json')
     with open(cards_list_dir, 'r', encoding='utf-8') as f:
         cards = json.load(f)
     deck_list = []
@@ -446,7 +437,6 @@ async def myprofile(session):
         loop = asyncio.get_event_loop()
         tasks = [loop.create_task(honor_coro), loop.create_task(deck_coro)]
         loop.run_until_complete(asyncio.wait(tasks))
-        loop.close
         try:
             honor_thumbnails, honor_names, honor_rarities = tasks[0].result()
             deck_images, deck_frame_ids, leader = tasks[1].result()
@@ -696,7 +686,7 @@ async def myprofile(session):
             statuses = music['userMusicDifficultyStatuses']
             for idx, difficulty in enumerate(statuses):
                 results = difficulty['userMusicResults']
-                status = set([0])
+                status = {0}
                 for result in results:
                     if result['playResult'] == 'full_perfect':
                         status.add(3)
@@ -1297,6 +1287,8 @@ async def myprofile(session):
             y_text += height
         tmp.save('/home/phynon/opt/cqhttp/data/images/tmp_result.png')
         profile_result = '[CQ:image,file=tmp_result.png]'
+        # tmp.convert('RGB').save('/home/phynon/opt/cqhttp/data/images/tmp_result.jpg')
+        # profile_result = '[CQ:image,file=tmp_result.jpg]'
         print(profile_result)
         await session.send(profile_result)
     except _FinishException as identifier:
@@ -1311,7 +1303,7 @@ async def myprofile(session):
 @myprofile.args_parser
 async def _(session: CommandSession):
     players_dir = os.path.join(os.path.dirname(__file__),
-                               '../sekaievent/known_players.json')
+                               '../metas/known_players.json')
     with open(players_dir, 'r') as f:
         if f.read(1):
             f.seek(0, 0)
@@ -1354,7 +1346,7 @@ def concat_images(images, path):
 @on_command('mysongs', aliases=['查歌'], only_to_me=False)
 async def mysongs(session):
     try:
-        src = 'http://183.173.141.23:5000/profile'
+        src = 'http://127.0.0.1:5000/profile'
         uid = session.get('uid')
         rq = {'uid': uid}
         print(rq)
@@ -1362,7 +1354,7 @@ async def mysongs(session):
         print(response.content)
         data = json.loads(response.content)
         data = data['userProfile']['word']
-        ranking = (data)
+        ranking = data
         await session.send(ranking)
     except Exception as identifier:
         print(identifier)
@@ -1374,7 +1366,7 @@ async def mysongs(session):
 @mysongs.args_parser
 async def _(session: CommandSession):
     players_dir = os.path.join(os.path.dirname(__file__),
-                               '../sekaievent/known_players.json')
+                               '../metas/known_players.json')
     with open(players_dir, 'r') as f:
         if f.read(1):
             f.seek(0, 0)

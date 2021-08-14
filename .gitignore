@@ -6,3 +6,5 @@ known_players.json
 *.flac
 /miku/modules/sekaiutils/music.zip
 /miku/modules/sekaiutils/sekaiprofile.zip
+/miku/modules/metas/
+/miku/modules/sekaischeduler/

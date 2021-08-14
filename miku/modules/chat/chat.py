@@ -1,5 +1,7 @@
 import random
+import os
 
+import json
 import nonebot
 from nonebot import on_command, CommandSession
 
@@ -81,7 +83,7 @@ async def _(session: CommandSession):
 @on_command('usage',
             aliases=('指南', '33'),
             only_to_me=True)
-async def sing_react(session):
+async def usage(session):
     try:
         await session.send('[CQ:image,file=usage_1.png]')
         await session.send('[CQ:image,file=usage_2.png]')
@@ -157,8 +159,14 @@ async def _(session: CommandSession):
     # timezone=None,
 )
 async def _():
-    with open('meta', 'r') as f:
-        group_id = f.readline()
+    groups_meta_dir = os.path.join(os.path.dirname(__file__), '../metas/groups_meta.json')
+    with open(groups_meta_dir, 'r') as f:
+        groups_meta = json.load(f)
     bot = nonebot.get_bot()
-    await bot.send_group_msg(group_id=group_id,
+    await bot.send_group_msg(group_id=groups_meta['sekai'],
                              message='起床啦！')
+@on_command('test',
+            only_to_me=True)
+async def _(session):
+    print('logged')
+    return

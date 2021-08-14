@@ -2,20 +2,20 @@ import random
 import requests
 import json
 import os
+import shutil
 from PIL import Image
 from miku.utils import FreqLimiter
-from nonebot import on_command
+from nonebot import on_command, CommandSession
+from miku.modules.sekaiutils import check_cooldown
+from miku.modules.sekaiutils import check_local_card_asset
+from miku.modules.sekaiutils import get_card_thb
+from miku.modules.sekaiutils import check_local_gacha_banner
+from miku.modules.sekaiutils import get_gacha_banner
+from miku.modules.sekaiutils import gacha_load_metas
+from miku.modules.sekaiutils import headers_sekaiviewer
 
 limiter = FreqLimiter(10)
 
-headers_sekaiviewer = {
-    'DNT': '1',
-    'Referer': 'https://sekai.best/',
-    'cache-control': 'max-age=0',
-    'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
-    'sec-ch-ua-mobile': '?0',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-}
 
 @on_command('gacha_ten',
             aliases='十连',
@@ -25,22 +25,14 @@ async def gacha_ten(session):
         user_qq = str(session.event['sender']['user_id'])
     else:
         user_qq = str(session.event['user_id'])
-    if not limiter.check(user_qq):
-        await session.finish(f'冷却中(剩余 {int(limiter.left_time(user_qq)) + 1}秒)', at_sender=True)
-    limiter.start_cd(user_qq, 5)
-    gacha_list_dir = os.path.join(os.path.dirname(__file__), 'gacha_list.json')
-    master_data_dir = os.path.join(os.path.dirname(__file__), '../sekaievent/master_data.json')
-    cards_list_dir = os.path.join(os.path.dirname(__file__), 'cards_list.json')
-    with open(gacha_list_dir, 'r') as f:
-        gachas = json.load(f)
-    with open(master_data_dir, 'r') as f:
-        master_data = json.load(f)
-    with open(cards_list_dir, 'r') as f:
-        cards = json.load(f)
+    await check_cooldown(session=session, user_qq=user_qq, limiter=limiter, time=7)
+    gachas, master_data, cards = gacha_load_metas()
     on_gacha_idx = master_data['ongoing_gacha_id']
     for item in gachas:
         if item['id'] == on_gacha_idx:
             gacha = item
+        else:
+            pass
     gacha_indexes = []
     for item in gacha['gachaDetails']:
         gacha_indexes.append(item['cardId'])
@@ -82,7 +74,6 @@ async def gacha_ten(session):
             r4_cnt += 1
         if card['rarity'] == 3:
             r3_cnt += 1
-    line = ''
     if up_cnt > 1:
         line = '要发红包要禁言（逗你玩的~）'
     elif up_cnt == 1 or r4_cnt > 1:
@@ -110,11 +101,11 @@ async def gacha_ten(session):
 
 
 def gacha_one(rates, up_rate, cards, up_cards):
-    '''
+    """
     rates: normal rates
     up_rate: total up card rates
     up_charas: up card info
-    '''
+    """
     r1_rate, r2_rate, r3_rate, r4_rate = rates
     total = sum(rates)
     r4_rate -= up_rate
@@ -131,7 +122,6 @@ def gacha_one(rates, up_rate, cards, up_cards):
             if card['rarity'] == 4:
                 charas.append(card)
         return random.choice(charas)
-        return
     elif pick <= up_rate + r4_rate + r3_rate:
         # r3
         for idx, card in enumerate(cards):
@@ -156,9 +146,10 @@ def concat_images(images, path):
     target = Image.new('RGB', (128 * 5 + 20, 128 * 2 + 5), '#ffffff')
     for row in range(2):
         for col in range(5):
-            target.paste(images[5*row+col], ((128+5)*col, (128+5)*row))
+            target.paste(images[5 * row + col], ((128 + 5) * col, (128 + 5) * row))
     target.save(path)
     return
+
 
 @on_command('get_gacha_list',
             aliases='更新卡池',
@@ -168,7 +159,7 @@ async def get_gacha_list(session):
         url = 'https://sekai-world.github.io/sekai-master-db-diff/gachas.json'
         raw_data = requests.get(url)
         data = json.loads(raw_data.content)
-        gacha_list_dir = os.path.join(os.path.dirname(__file__), 'gacha_list.json')
+        gacha_list_dir = os.path.join(os.path.dirname(__file__), '../metas/gacha_list.json')
         with open(gacha_list_dir, 'w') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         get_gacha_info = (f"sekai中已有{len(list(data))}次招募卡池。\n"
@@ -186,7 +177,7 @@ async def get_cards_list(session):
         url = 'https://sekai-world.github.io/sekai-master-db-diff/cards.json'
         raw_data = requests.get(url, headers=headers_sekaiviewer)
         data = json.loads(raw_data.content)
-        cards_list_dir = os.path.join(os.path.dirname(__file__), 'cards_list.json')
+        cards_list_dir = os.path.join(os.path.dirname(__file__), '../metas/cards_list.json')
         with open(cards_list_dir, 'w') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         get_cards_info = (f"sekai中已有{len(list(data))}张卡牌。\n"
@@ -194,50 +185,90 @@ async def get_cards_list(session):
         await session.send(get_cards_info)
         for item in data:
             asset_name = item['assetbundleName']
-            chara_thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_normal.png')
-            if not os.path.exists(os.path.join(os.path.dirname(__file__), 'thumbnail/chara')):
-                os.makedirs(os.path.join(os.path.dirname(__file__), 'thumbnail/chara'))
-            if os.path.exists(chara_thumbnail_dir):
+            asset_exist = check_local_card_asset(asset_name)
+            if asset_exist:
                 pass
             else:
-                print(asset_name)
-                url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/thumbnail/chara_rip/{asset_name}_normal.png'
-                raw_data = requests.get(url, headers=headers_sekaiviewer)
-                with open(chara_thumbnail_dir, 'wb') as f:
-                    f.write(raw_data.content)
-        get_cards_thb = ("所有卡牌头图更新完成。")
-        await session.send(get_cards_thb)
+                get_card_thb(asset_name)
+        await session.send('所有卡牌头图更新完成。')
     except Exception as identifier:
         print(identifier)
+
 
 @on_command('get_cards_thumbnails',
             aliases='更新卡牌头图',
             only_to_me=False)
 async def get_cards_thumbnails(session):
     try:
-        cards_list_dir = os.path.join(os.path.dirname(__file__), 'cards_list.json')
+        cards_list_dir = os.path.join(os.path.dirname(__file__), '../metas/cards_list.json')
         with open(cards_list_dir, 'r') as f:
             data = json.load(f)
         for item in data:
             asset_name = item['assetbundleName']
-            chara_thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_normal.png')
-            if not os.path.exists(os.path.join(os.path.dirname(__file__), 'thumbnail/chara')):
-                os.makedirs(os.path.join(os.path.dirname(__file__), 'thumbnail/chara'))
-            if os.path.exists(chara_thumbnail_dir):
+            asset_exist = check_local_card_asset(asset_name)
+            if asset_exist:
                 pass
             else:
-                print(asset_name)
-                url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/thumbnail/chara_rip/{asset_name}_normal.png'
-                raw_data = requests.get(url)
-                with open(chara_thumbnail_dir, 'wb') as f:
-                    f.write(raw_data.content)
-        get_cards_thb = ("所有卡牌头图更新完成。")
-        await session.send(get_cards_thb)
+                get_card_thb(asset_name)
+        await session.send('所有卡牌头图更新完成。')
     except Exception as identifier:
         print(identifier)
 
-'''
+
 @on_command('show_gacha_list',
             aliases='查看卡池',
-            only_to_me=False):
-            '''
+            only_to_me=False)
+async def show_gacha_list(session):
+    try:
+        if session.event['sender']['user_id'] is not None:
+            user_qq = str(session.event['sender']['user_id'])
+        else:
+            user_qq = str(session.event['user_id'])
+        await check_cooldown(session, user_qq, limiter, time=60)
+        gachas, master_data, cards = gacha_load_metas()
+        event_id = master_data['event_no']
+        ongoing_gacha_id = master_data['ongoing_gacha_id']
+        gacha_info = ''
+        for idx in range(-3, 0):
+            gacha_id = gachas[idx]['id']
+            gacha_name = gachas[idx]['name']
+            asset_exist = check_local_gacha_banner(gacha_id)
+            if asset_exist:
+                pass
+            else:
+                get_gacha_banner(gacha_id)
+            gacha_banner_dir = os.path.join(os.path.dirname(__file__),
+                                            f'assets/gacha_banner/banner_gacha{gacha_id}.png')
+            tmp_dir = f'/home/phynon/opt/cqhttp/data/images/banner_gacha{gacha_id}.png'
+            print(gacha_banner_dir, tmp_dir)
+            shutil.copy(gacha_banner_dir, tmp_dir)
+            gacha_info += f'{gacha_id} {gacha_name}\n'
+            gacha_info += f'[CQ:image,file=banner_gacha{gacha_id}.png]'
+        gacha_info += f"现在是第 {event_id} 期活动，卡池为 {ongoing_gacha_id}\n"
+        gacha_info += '可以发送 "切换活动 活动期数" 切换追踪的活动\n'
+        gacha_info += '可以发送 "切换卡池 卡池编码" 切换使用的卡池'
+        await session.send(gacha_info)
+    except Exception as identifier:
+        print(repr(identifier))
+
+@on_command('change_ongoing_gacha', aliases='切换卡池', only_to_me=False)
+async def change_ongoing_gacha(session):
+    master_dir = os.path.join(os.path.dirname(__file__), '../metas/master_data.json')
+    with open(master_dir, 'r') as f:
+        master_data = json.load(f)
+    gacha_id = session.get('gacha_id')
+    master_data['ongoing_gacha_id'] = int(gacha_id)
+    with open(master_dir, 'w') as f:
+        json.dump(master_data, f, indent=2, ensure_ascii=False)
+    await session.send(f'已切换到卡池 {gacha_id}')
+
+@change_ongoing_gacha.args_parser
+async def _(session: CommandSession):
+    stripped_arg = session.current_arg_text.strip()
+    if session.is_first_run:
+        if stripped_arg:
+            session.state['gacha_id'] = stripped_arg
+        return
+    if not stripped_arg:
+        session.pause('爬')
+    session.state[session.current_key] = stripped_arg

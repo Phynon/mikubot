@@ -5,18 +5,10 @@ from typing import FrozenSet
 import requests
 from nonebot import CommandSession, on_command
 
-players_dir = os.path.join(os.path.dirname(__file__), 'known_players.json')
-with open(players_dir, 'r') as f:
-    if f.read(1):
-        f.seek(0, 0)
-        players = json.load(f)
-    else:
-        players = {}
-
 
 @on_command('myrank', aliases=['sekairank', 'my rank', 'myランク'], only_to_me=False)
 async def myrank_react(session):
-    master_dir = os.path.join(os.path.dirname(__file__), 'master_data.json')
+    master_dir = os.path.join(os.path.dirname(__file__), '../metas/master_data.json')
     with open(master_dir, 'r') as f:
         master_data = json.load(f)
     try:
@@ -29,7 +21,8 @@ async def myrank_react(session):
         print(response.content)
         data = json.loads(response.content)
         data = data['rankings'][0]
-        ranking = (f"玩家名 {data['name']}\n"
+        ranking = (f"第 {event_id} 期活动\n"
+                   f"玩家名 {data['name']}\n"
                    f"好友码 {data['userId']}\n"
                    f"分数    {data['score']}\n"
                    f"排名    {data['rank']}")
@@ -44,7 +37,7 @@ async def myrank_react(session):
 @myrank_react.args_parser
 
 async def _(session: CommandSession):
-    players_dir = os.path.join(os.path.dirname(__file__), 'known_players.json')
+    players_dir = os.path.join(os.path.dirname(__file__), '../metas/known_players.json')
     with open(players_dir, 'r') as f:
         if f.read(1):
             f.seek(0, 0)
