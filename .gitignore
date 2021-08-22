@@ -4,5 +4,5 @@ known_players.json
 *.pyc
 *.png
 *.flac
-/miku/modules/metas/
-/miku/modules/sekaischeduler/
+/miku/modules/metas
+/miku/modules/sekaischeduler
