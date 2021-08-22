@@ -90,8 +90,8 @@ async def gacha_ten(session):
         thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_normal.png')
         image = Image.open(thumbnail_dir)
         thumbnails.append(image)
-    tmp_result_dir = '/home/phynon/opt/cqhttp/data/images/tmp_result.png'
-    concat_images(thumbnails, tmp_result_dir)
+    tmp_result_dir_cqhttp = '/home/phynon/opt/cqhttp/data/images/tmp_result.png'
+    concat_images(thumbnails, tmp_result_dir_cqhttp)
     gacha_result = (f'[CQ:at,qq={user_qq}]\n'
                     f'当期up卡{up_cnt}张，4星卡{r4_cnt}张，3星卡{r3_cnt}张\n'
                     f'[CQ:image,file=tmp_result.png]\n'
@@ -228,8 +228,10 @@ async def show_gacha_list(session):
         gachas, master_data, cards = gacha_load_metas()
         event_id = master_data['event_no']
         ongoing_gacha_id = master_data['ongoing_gacha_id']
+        gacha_infoes = ['', '', '']
         gacha_info = ''
         for idx in range(-3, 0):
+            gacha_detail = ''
             gacha_id = gachas[idx]['id']
             gacha_name = gachas[idx]['name']
             asset_exist = check_local_gacha_banner(gacha_id)
@@ -239,11 +241,15 @@ async def show_gacha_list(session):
                 get_gacha_banner(gacha_id)
             gacha_banner_dir = os.path.join(os.path.dirname(__file__),
                                             f'assets/gacha_banner/banner_gacha{gacha_id}.png')
-            tmp_dir = f'/home/phynon/opt/cqhttp/data/images/banner_gacha{gacha_id}.png'
-            print(gacha_banner_dir, tmp_dir)
-            shutil.copy(gacha_banner_dir, tmp_dir)
+            tmp_dir_cqhttp = f'/home/phynon/opt/cqhttp/data/images/banner_gacha{gacha_id}.png'
+            # print(gacha_banner_dir, tmp_dir)
+            shutil.copy(gacha_banner_dir, tmp_dir_cqhttp)
             gacha_info += f'{gacha_id} {gacha_name}\n'
-            gacha_info += f'[CQ:image,file=banner_gacha{gacha_id}.png]'
+            if os.path.getsize(gacha_banner_dir) > 1024:
+                # correct banner asset exists
+                gacha_info += f'[CQ:image,file=banner_gacha{gacha_id}.png]'
+            else:
+                gacha_info += f'[CQ:image,file=miku_sorry.png]'
         gacha_info += f"现在是第 {event_id} 期活动，卡池为 {ongoing_gacha_id}\n"
         gacha_info += '可以发送 "切换活动 活动期数" 切换追踪的活动\n'
         gacha_info += '可以发送 "切换卡池 卡池编码" 切换使用的卡池'

@@ -709,6 +709,7 @@ async def myprofile(session):
                     pass
         music_status = [clear, fc, fp]
         bg = random.sample(bg_list, 1)[0]
+        # bg = '04_01'
         tmp = Image.open(
             os.path.join(os.path.dirname(__file__),
                          f'assets/background/android_bg_unit{bg}.png'))

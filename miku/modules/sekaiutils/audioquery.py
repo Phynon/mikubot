@@ -26,8 +26,8 @@ async def play_song_short(session):
     with open(asset_list_dir, 'r') as f:
         assets = json.load(f)
     asset = random.sample(list(assets.values()), 1)[0]
-    tmp_result_dir = '/home/phynon/opt/cqhttp/data/voices/tmp_result.flac'
-    shutil.copy(asset, tmp_result_dir)
+    tmp_result_dir_cqhttp = '/home/phynon/opt/cqhttp/data/voices/tmp_result.flac'
+    shutil.copy(asset, tmp_result_dir_cqhttp)
     try:
         cq_song_short = f'[CQ:record,file=tmp_result.flac]'
         print(asset)
@@ -89,8 +89,8 @@ async def request_song_short(session):
     asset_list = list(assets.values())
     request_list = list(filter(lambda x: re.search(song_index, x) is not None, asset_list))
     asset = random.sample(request_list, 1)[0]
-    tmp_result_dir = '/home/phynon/opt/cqhttp/data/voices/tmp_result.flac'
-    shutil.copy(asset, tmp_result_dir)
+    tmp_result_dir_cqhttp = '/home/phynon/opt/cqhttp/data/voices/tmp_result.flac'
+    shutil.copy(asset, tmp_result_dir_cqhttp)
     try:
         cq_song_short = f'[CQ:record,file=tmp_result.flac]'
         print(cq_song_short)
@@ -117,7 +117,7 @@ async def _(session: CommandSession):
             only_to_me=False)
 async def get_song_list(session):
     try:
-        song_list, asset_list = audio_update_assets()
+        song_list, asset_list = audio_update_list()
         get_song_info = (f"sekai中现在有{len(set(song_list))}首歌曲，\n"
                          f"有{len(asset_list)}段不一样的歌声。\n"
                          f"你今天想要听到谁的思念呢？")
