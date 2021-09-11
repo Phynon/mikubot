@@ -4,10 +4,10 @@ import json
 import os
 import shutil
 from PIL import Image
-from miku.utils import FreqLimiter
+from miku.utils import FreqLimiter, check_favor
 from nonebot import on_command, CommandSession
 from miku.modules.sekaiutils import check_cooldown
-from miku.modules.sekaiutils import check_local_card_asset
+from miku.modules.sekaiutils import check_local_thb_asset
 from miku.modules.sekaiutils import get_card_thb
 from miku.modules.sekaiutils import check_local_gacha_banner
 from miku.modules.sekaiutils import get_gacha_banner
@@ -74,16 +74,42 @@ async def gacha_ten(session):
             r4_cnt += 1
         if card['rarity'] == 3:
             r3_cnt += 1
+    favor = check_favor(user_qq)
     if up_cnt > 1:
-        line = '要发红包要禁言（逗你玩的~）'
+        if favor >= 50:
+            line = '要发红包要禁言（逗你玩的~）'
+        elif 50 > favor >= -10:
+            line = '恭喜up！'
+        else:
+            line = '你又氪了多少单呢？'
     elif up_cnt == 1 or r4_cnt > 1:
-        line = '要发红包（逗你玩的~）'
+        if favor >= 50:
+            line = '要发红包（逗你玩的~）'
+        elif 50 > favor >= -10:
+            line = '恭喜up！'
+        else:
+            line = '你又氪了多少单呢？'
     elif up_cnt == 0 and r4_cnt == 1:
-        line = '不亏）'
+        if favor >= 50:
+            line = '没关系 总会出up的'
+        elif 50 > favor >= -10:
+            line = '不亏）'
+        else:
+            line = '但不是up哦'
     elif up_cnt == 0 and r4_cnt == 0 and r3_cnt > 1:
-        line = '不亏（心虚）'
+        if favor >= 50:
+            line = '没关系 总会出彩球的'
+        elif 50 > favor >= -10:
+            line = '不亏（心虚）'
+        else:
+            line = '真的不亏吗'
     else:
-        line = '又保底了呢 呵呵~ 我还是转我的 反正不会变彩球'
+        if favor >= 50:
+            line = '没关系 总会出彩球的'
+        elif 50 > favor >= -10:
+            line = '...'
+        else:
+            line = '呵呵~ 又保底了呢 没差 我还是转我的 反正不会变彩球'
     thumbnails = []
     for item in result:
         asset_name = item['assetbundleName']
@@ -185,7 +211,7 @@ async def get_cards_list(session):
         await session.send(get_cards_info)
         for item in data:
             asset_name = item['assetbundleName']
-            asset_exist = check_local_card_asset(asset_name)
+            asset_exist = check_local_thb_asset(asset_name)
             if asset_exist:
                 pass
             else:
@@ -205,7 +231,7 @@ async def get_cards_thumbnails(session):
             data = json.load(f)
         for item in data:
             asset_name = item['assetbundleName']
-            asset_exist = check_local_card_asset(asset_name)
+            asset_exist = check_local_thb_asset(asset_name)
             if asset_exist:
                 pass
             else:

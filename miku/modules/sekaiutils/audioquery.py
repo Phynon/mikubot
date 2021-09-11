@@ -7,9 +7,11 @@ import re
 import os
 from fuzzywuzzy import process
 from nonebot import on_command, on_natural_language, CommandSession, NLPSession, IntentCommand
+from miku.utils import favor_up, favor_down
 from miku.modules.sekaiutils import audio_update_aliases
 from miku.modules.sekaiutils import audio_update_assets
 from miku.modules.sekaiutils import audio_update_list
+
 headers_sekaiviewer = {
     'DNT': '1',
     'Referer': 'https://sekai.best/',
@@ -22,6 +24,10 @@ headers_sekaiviewer = {
             aliases=('歌声', '歌曲', '今天打啥歌', '玩啥', '玩什么'),
             only_to_me=False)
 async def play_song_short(session):
+    if session.event['sender']['user_id'] is not None:
+        user_qq = str(session.event['sender']['user_id'])
+    else:
+        user_qq = str(session.event['user_id'])
     asset_list_dir = os.path.join(os.path.dirname(__file__), '../metas/asset_list.json')
     with open(asset_list_dir, 'r') as f:
         assets = json.load(f)
@@ -32,6 +38,7 @@ async def play_song_short(session):
         cq_song_short = f'[CQ:record,file=tmp_result.flac]'
         print(asset)
         await session.send(cq_song_short)
+        favor_up(user_qq, 3)
     except Exception as identifier:
         print(identifier)
 
@@ -51,6 +58,11 @@ async def _(session: NLPSession):
 @on_command('request_song_short',
             only_to_me=False)
 async def request_song_short(session):
+    if session.event['sender']['user_id'] is not None:
+        user_qq = str(session.event['sender']['user_id'])
+    else:
+        user_qq = str(session.event['user_id'])
+    print(user_qq)
     song_aliases_dir = os.path.join(os.path.dirname(__file__), '../metas/song_aliases.json')
     with open(song_aliases_dir, 'r') as f:
         song_aliases = json.load(f)
@@ -94,6 +106,7 @@ async def request_song_short(session):
     try:
         cq_song_short = f'[CQ:record,file=tmp_result.flac]'
         print(cq_song_short)
+        favor_up(user_qq, 3)
         await session.send(cq_song_short)
     except Exception as identifier:
         print(identifier)
@@ -166,6 +179,10 @@ async def _(session: NLPSession):
 @on_command('add_song_alias', aliases=['add'], only_to_me=False)
 async def add_song_alias(session):
     try:
+        if session.event['sender']['user_id'] is not None:
+            user_qq = str(session.event['sender']['user_id'])
+        else:
+            user_qq = str(session.event['user_id'])
         song_aliases_dir = os.path.join(os.path.dirname(__file__), '../metas/song_aliases.json')
         with open(song_aliases_dir, 'r') as f:
             if f.read(1):
@@ -182,6 +199,7 @@ async def add_song_alias(session):
         alias = session.get('alias')
         if title in alias_list:
             if alias in alias_list:
+                favor_down(user_qq, 1)
                 await session.send('早就知道啦~')
             else:
                 song_index = ''
@@ -193,6 +211,7 @@ async def add_song_alias(session):
                 song_aliases[song_index].append(alias)
                 with open(song_aliases_dir, 'w') as f:
                     json.dump(song_aliases, f, indent=2, ensure_ascii=False)
+                favor_up(user_qq, 2)
                 await session.send('知道啦~')
         else:
             real_title, confidency = process.extractOne(title, alias_list)

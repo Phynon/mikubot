@@ -19,11 +19,23 @@ async def check_cooldown(session, user_qq, limiter, time):
     limiter.start_cd(user_qq, time)
 
 
-def check_local_card_asset(asset_name):
+def check_local_thb_asset(asset_name):
     chara_thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_normal.png')
     if not os.path.exists(os.path.join(os.path.dirname(__file__), 'thumbnail/chara')):
         os.makedirs(os.path.join(os.path.dirname(__file__), 'thumbnail/chara'))
     if os.path.exists(chara_thumbnail_dir):
+        return True
+    else:
+        return False
+
+
+def check_local_card_asset(asset_name, status):
+    # status: str normal or after_training
+    card_asset_dir = os.path.join(os.path.dirname(__file__),
+                                  f'assets/character/member_small/{asset_name}/card_{status}.png')
+    if not os.path.exists(os.path.join(os.path.dirname(__file__), f'assets/character/member_small/{asset_name}')):
+        os.makedirs(os.path.join(os.path.dirname(__file__), f'assets/character/member_small/{asset_name}'))
+    if os.path.exists(card_asset_dir):
         return True
     else:
         return False
@@ -38,6 +50,19 @@ def get_card_thb(asset_name):
         f.write(raw_data.content)
     print('succeeded')
 
+
+def get_card_asset(asset_name, status):
+    # status: str normal or after_training
+    card_asset_dir = os.path.join(os.path.dirname(__file__),
+                                  f'assets/character/member_small/{asset_name}/card_{status}.png')
+    print(f'{asset_name}_{status} to be downloaded:')
+    asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_small/{asset_name}_rip/card_{status}.png'
+    raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
+    with open(card_asset_dir, 'wb') as f:
+        f.write(raw_data.content)
+    print('succeeded')
+
+
 def check_local_gacha_banner(gacha_id):
     gacha_banner_dir = os.path.join(os.path.dirname(__file__), f'assets/gacha_banner/banner_gacha{gacha_id}.png')
     if not os.path.exists(os.path.join(os.path.dirname(__file__), 'assets/gacha_banner')):
@@ -46,6 +71,7 @@ def check_local_gacha_banner(gacha_id):
         return True
     else:
         return False
+
 
 def get_gacha_banner(gacha_id):
     gacha_banner_dir = os.path.join(os.path.dirname(__file__), f'assets/gacha_banner/banner_gacha{gacha_id}.png')
@@ -69,6 +95,14 @@ def gacha_load_metas():
         cards = json.load(f)
     return gachas, master_data, cards
 
+
+def game_load_cards():
+    cards_list_dir = os.path.join(os.path.dirname(__file__), '../metas/cards_list.json')
+    with open(cards_list_dir, 'r') as f:
+        cards = json.load(f)
+    return cards
+
+
 def audio_update_aliases():
     url_zh = 'https://i18n-json.sekai.best/zh-CN/music_titles.json'
     url_ja = 'https://i18n-json.sekai.best/ja/music_titles.json'
@@ -90,6 +124,7 @@ def audio_update_aliases():
     with open(song_aliases_dir, 'w') as f:
         json.dump(song_aliases, f, indent=2, ensure_ascii=False)
     return index_list
+
 
 def audio_update_list():
     url = 'https://api.pjsek.ai/assets?parent=startapp/music/short&$limit=1000&$sort[isDir]=-1&$sort[path]=1'
@@ -114,6 +149,7 @@ def audio_update_list():
     with open(asset_list_dir, 'w') as f:
         json.dump(assets, f, indent=2, ensure_ascii=False)
     return song_list, asset_list
+
 
 def audio_update_assets(asset_list):
     for idx, item in enumerate(asset_list):

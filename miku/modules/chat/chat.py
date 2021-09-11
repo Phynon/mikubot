@@ -4,7 +4,7 @@ import os
 import json
 import nonebot
 from nonebot import on_command, CommandSession
-
+from miku.utils import check_favor, favor_up, favor_down
 
 # from .luka import Music_api
 
@@ -169,4 +169,9 @@ async def _():
             only_to_me=True)
 async def _(session):
     print('logged')
+    if session.event['sender']['user_id'] is not None:
+        user_qq = str(session.event['sender']['user_id'])
+    else:
+        user_qq = str(session.event['user_id'])
+    favor_up(user_qq, 20)
     return
