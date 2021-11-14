@@ -20,12 +20,19 @@ async def myrank_react(session):
         response = requests.post(src, rq)
         print(response.content)
         data = json.loads(response.content)
-        data = data['rankings'][0]
-        ranking = (f"第 {event_id} 期活动\n"
-                   f"玩家名 {data['name']}\n"
-                   f"好友码 {data['userId']}\n"
-                   f"分数    {data['score']}\n"
-                   f"排名    {data['rank']}")
+        if 'rankings' in data:
+            if not data['rankings']:
+                ranking = (f"第 {event_id} 期活动\n"
+                           "没有参加！")
+            else:
+                data = data['rankings'][0]
+                ranking = (f"第 {event_id} 期活动\n"
+                           f"玩家名 {data['name']}\n"
+                           f"好友码 {data['userId']}\n"
+                           f"分数    {data['score']}\n"
+                           f"排名    {data['rank']}")
+        else:
+            ranking = '通信エラー：接続ができません'
         await session.send(ranking)
     except Exception as identifier:
         print(identifier)
@@ -35,7 +42,6 @@ async def myrank_react(session):
 
 
 @myrank_react.args_parser
-
 async def _(session: CommandSession):
     players_dir = os.path.join(os.path.dirname(__file__), '../metas/known_players.json')
     with open(players_dir, 'r') as f:
