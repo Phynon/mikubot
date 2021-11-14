@@ -19,8 +19,8 @@ async def check_cooldown(session, user_qq, limiter, time):
     limiter.start_cd(user_qq, time)
 
 
-def check_local_thb_asset(asset_name):
-    chara_thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_normal.png')
+def check_local_thb_asset(asset_name, status):
+    chara_thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_{status}.png')
     if not os.path.exists(os.path.join(os.path.dirname(__file__), 'thumbnail/chara')):
         os.makedirs(os.path.join(os.path.dirname(__file__), 'thumbnail/chara'))
     if os.path.exists(chara_thumbnail_dir):
@@ -41,10 +41,10 @@ def check_local_card_asset(asset_name, status):
         return False
 
 
-def get_card_thb(asset_name):
-    chara_thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_normal.png')
-    print(f'{asset_name} to be downloaded:')
-    url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/thumbnail/chara_rip/{asset_name}_normal.png'
+def get_card_thb(asset_name, status):
+    chara_thumbnail_dir = os.path.join(os.path.dirname(__file__), f'thumbnail/chara/{asset_name}_{status}.png')
+    print(f'{asset_name}_{status} to be downloaded:')
+    url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/thumbnail/chara_rip/{asset_name}_{status}.png'
     raw_data = requests.get(url, headers=headers_sekaiviewer)
     with open(chara_thumbnail_dir, 'wb') as f:
         f.write(raw_data.content)
@@ -127,15 +127,13 @@ def audio_update_aliases():
 
 
 def audio_update_list():
-    url = 'https://api.pjsek.ai/assets?parent=startapp/music/short&$limit=1000&$sort[isDir]=-1&$sort[path]=1'
-    raw_data = requests.get(url)
-    data = json.loads(raw_data.content)
-    dir_list = data['data']
+    url = 'https://sekai-world.github.io/sekai-master-db-diff/musicVocals.json'
+    raw_data = requests.get(url, headers=headers_sekaiviewer)
+    vocals_list = json.loads(raw_data.content)
     song_list = []
     asset_list = []
-    for idx, item in enumerate(dir_list):
-        path = item['path']
-        asset_name = path.split('/')[-1]
+    for idx, item in enumerate(vocals_list):
+        asset_name = item['assetbundleName']
         if re.search('short', asset_name) is not None:
             suffix = '.flac'
         else:

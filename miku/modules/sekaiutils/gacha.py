@@ -209,13 +209,20 @@ async def get_cards_list(session):
         get_cards_info = (f"sekai中已有{len(list(data))}张卡牌。\n"
                           f"你今天想要看到谁的故事呢？")
         await session.send(get_cards_info)
+
         for item in data:
             asset_name = item['assetbundleName']
-            asset_exist = check_local_thb_asset(asset_name)
-            if asset_exist:
-                pass
+            if item['cardRarityType'] in ('rarity_1', 'rarity_2', 'rarity_birthday'):
+                after_should_exist = 0
+                asset_exist_normal = check_local_thb_asset(asset_name, 'normal')
             else:
-                get_card_thb(asset_name)
+                after_should_exist = 1
+                asset_exist_normal = check_local_thb_asset(asset_name, 'normal')
+                asset_exist_after_training = check_local_thb_asset(asset_name, 'after_training')
+            if not asset_exist_normal:
+                get_card_thb(asset_name, 'normal')
+            if after_should_exist and not asset_exist_after_training:
+                get_card_thb(asset_name, 'after_training')
         await session.send('所有卡牌头图更新完成。')
     except Exception as identifier:
         print(identifier)
@@ -231,11 +238,17 @@ async def get_cards_thumbnails(session):
             data = json.load(f)
         for item in data:
             asset_name = item['assetbundleName']
-            asset_exist = check_local_thb_asset(asset_name)
-            if asset_exist:
-                pass
+            if item['cardRarityType'] in ('rarity_1', 'rarity_2', 'rarity_birthday'):
+                after_should_exist = 0
+                asset_exist_normal = check_local_thb_asset(asset_name, 'normal')
             else:
-                get_card_thb(asset_name)
+                after_should_exist = 1
+                asset_exist_normal = check_local_thb_asset(asset_name, 'normal')
+                asset_exist_after_training = check_local_thb_asset(asset_name, 'after_training')
+            if not asset_exist_normal:
+                get_card_thb(asset_name, 'normal')
+            if after_should_exist and not asset_exist_after_training:
+                get_card_thb(asset_name, 'after_training')
         await session.send('所有卡牌头图更新完成。')
     except Exception as identifier:
         print(identifier)
