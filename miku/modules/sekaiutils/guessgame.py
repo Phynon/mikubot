@@ -88,10 +88,22 @@ def game_chessboard(img):
     chessboard.save(os.path.join(os.path.dirname(__file__), f'card.png'))
     return chessboard
 
+def game_thumbnail_pixelate(img):
+    size_original = img.size
+    img = img.resize((4, 4))
+    img = img.resize(size_original, Image.NEAREST)
+    img.save(os.path.join(os.path.dirname(__file__), f'pixelate.png'))
+    return img
 
 @bot.on_message('group')
 async def guess_whois(ctx):
-    if ctx.message.extract_plain_text() != '角色猜猜看':
+    trigger_strs = ['角色猜猜看', '猜局部', '猜模糊', '猜头像']
+    message_text = ctx.message.extract_plain_text()
+    flag = -1
+    for idx, trigger_str in enumerate(trigger_strs):
+        if message_text == trigger_str:
+            flag = idx
+    if flag == -1:
         return
     if game_master.gaming:
         return
@@ -99,17 +111,41 @@ async def guess_whois(ctx):
                              message='游戏正在准备中')
     game_master.start()
     cards = game_load_cards()
-    answer = random.sample(cards, 1)[0]
-    # print(answer)
-    if answer['rarity'] <= 2:
-        status = 'normal'
-        game_method = game_blur
-    else:
-        status = random.sample(['normal', 'after_training'], 1)[0]
-        if random.randint(0, 1) == 0:
+    if flag == 0:
+        answer = random.sample(cards, 1)[0]
+        # print(answer)
+        if answer['cardRarityType'] in ('rarity_1', 'rarity_2', 'rarity_birthday'):
+            status = 'normal'
             game_method = game_blur
         else:
-            game_method = game_crop
+            status = random.sample(['normal', 'after_training'], 1)[0]
+            if random.randint(0, 1) == 0:
+                game_method = game_blur
+            else:
+                game_method = game_crop
+    elif flag == 1:
+        while True:
+            answer = random.sample(cards, 1)[0]
+            if answer['cardRarityType'] not in ('rarity_1', 'rarity_2', 'rarity_birthday'):
+                break
+        status = random.sample(['normal', 'after_training'], 1)[0]
+        game_method = game_crop
+    elif flag == 2:
+        answer = random.sample(cards, 1)[0]
+        # print(answer)
+        if answer['cardRarityType'] in ('rarity_1', 'rarity_2', 'rarity_birthday'):
+            status = 'normal'
+        else:
+            status = random.sample(['normal', 'after_training'], 1)[0]
+        game_method = game_blur
+    elif flag == 3:
+        answer = random.sample(cards, 1)[0]
+        # print(answer)
+        if answer['cardRarityType'] in ('rarity_1', 'rarity_2', 'rarity_birthday'):
+            status = 'normal'
+        else:
+            status = random.sample(['normal', 'after_training'], 1)[0]
+        game_method = game_thumbnail_pixelate
     asset_name = answer['assetbundleName']
     ans_title = answer['prefix']
     game_master.chara = answer['characterId'] - 1
@@ -130,6 +166,10 @@ async def guess_whois(ctx):
     card_asset_dir = os.path.join(os.path.dirname(__file__),
                                   f'assets/character/member_small/{asset_name}/card_{status}.png')
     img = Image.open(card_asset_dir)
+    if flag == 3:
+        thumbnail_dir = os.path.join(os.path.dirname(__file__),
+                                    f'thumbnail/chara/{asset_name}_{status}.png')
+        img = Image.open(thumbnail_dir)
     img = game_method(img)
     ques_dir = '/home/phynon/opt/cqhttp/data/images/ques.png'
     ans_dir = '/home/phynon/opt/cqhttp/data/images/ans.png'
