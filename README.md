@@ -23,18 +23,20 @@ Mikubot focuses on players of [Project Sekai: Colorful Stage! featuring Hatsune 
 - **gacha simulation**
 - **user profile image generation**
 - **scheduled tasks to fetch in-game metas**
+- **character image guess game**
 
-<details>
-<summary>functions to be implemented</summary>
+functions to be implemented
 
-- refined query for player profile
+-  [ ] music guess game
+-  [ ] deep chat
+-  [ ] event ranking schedule notification subscription
 
-</details>
 
 <details>
 <summary>functions in far future plans</summary>
 
 - refined query for player music profile
+- more in-game query functions
 
 </details>
 
