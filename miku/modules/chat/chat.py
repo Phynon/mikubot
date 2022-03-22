@@ -63,6 +63,20 @@ async def lovely_react(session):
     await session.send(msg)
 
 
+@on_command('like',
+            aliases=('喜欢你', '我喜欢你', '好喜欢你', '我好喜欢你', '好喜欢', '爱你', '我爱你'),
+            only_to_me=True)
+async def lovely_react(session):
+    like_list = [
+        '太好了~'
+        '要我给你唱首歌吗',
+        '[CQ:image,file=miku_ehehe.png]',
+        '[CQ:image,file=miku_mmj_kawaii.png]',
+    ]
+    msg = random.sample(like_list, 1)[0]
+    await session.send(msg)
+
+
 @on_command('crawl',
             aliases=('爬', '爬爬爬'),
             only_to_me=True)
