@@ -1,12 +1,11 @@
 import json
 import os
-from typing import FrozenSet
 
 import requests
 from nonebot import CommandSession, on_command
 
 
-@on_command('myrank', aliases=['sekairank', 'my rank', 'myランク'], only_to_me=False)
+@on_command('myrank', aliases=['sekairank', 'my rank', 'Myrank', 'myランク'], only_to_me=False)
 async def myrank_react(session):
     master_dir = os.path.join(os.path.dirname(__file__), '../metas/master_data.json')
     with open(master_dir, 'r') as f:
