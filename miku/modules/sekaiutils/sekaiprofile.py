@@ -35,7 +35,14 @@ headers_pjsekai = {
 }
 
 
-async def prepare_honor_images(profile: dict) -> tuple:
+async def prepare_honor_images(profile_honor: dict) -> tuple:
+    """
+    [
+        {'bondsHonorWordId': 0, 'honorId': 105, 'honorLevel': 1, 'profileHonorType': 'normal', 'seq': 1},
+        {'bondsHonorViewType': 'normal', 'bondsHonorWordId': 1012101, 'honorId': 1012101, 'honorLevel': 1, 'profileHonorType': 'bonds', 'seq': 2},
+        {'bondsHonorViewType': 'none', 'bondsHonorWordId': 0, 'honorId': 97, 'honorLevel': 1, 'profileHonorType': 'normal', 'seq': 3}
+    ]
+    """
     print('prepare honor data')
     honor_meta_url = 'https://sekai-world.github.io/sekai-master-db-diff/honors.json'
     raw_data = requests.get(honor_meta_url, headers=headers_sekaiviewer)
@@ -51,14 +58,16 @@ async def prepare_honor_images(profile: dict) -> tuple:
     honor_rarities = []
     honor_names = []
 
+    print(profile_honor)
+
     for i in range(3):
-        if f'honorId{i + 1}' not in profile:
+        if f'honorId{i + 1}' not in profile_honor:
             image = Image.new('RGBA', [1, 1])
             honor_thumbnails.append(image)
             honor_names.append('')
             honor_rarities.append('')
             continue
-        honor_id = profile[f'honorId{i + 1}']
+        honor_id = profile_honor[f'honorId{i + 1}']
         honor_id = format(int(honor_id), '04d')
         honor_asset_name = honor_metas[int(honor_id)]['assetbundleName']
         honor_group_id = honor_metas[int(honor_id)]['groupId']
@@ -258,12 +267,13 @@ async def prepare_deck_images(data: dict) -> tuple:
     for idx, card in enumerate(cards):
         if card['id'] in deck_list:
             deck_assets[f"{card['id']}"] = card['assetbundleName']
-            deck_rarities[f"{card['id']}"] = card['rarity']
+            deck_rarities[f"{card['id']}"] = card['cardRarityType']
     leader = []
     async with httpx.AsyncClient() as client:
         tasks = []
         for idx, card_id in enumerate(deck_list):
-            deck_frame_ids.append(deck_rarities[str(card_id)])
+            frame_rarity_id = deck_rarities[str(card_id)].split('_')[1]
+            deck_frame_ids.append(frame_rarity_id)
             coro = get_card_assets(client, user_cards, deck_assets, card_id, idx, deck_images, leader)
             tasks.append(asyncio.create_task(coro))
     await asyncio.gather(*tasks)
@@ -428,6 +438,7 @@ async def myprofile(session):
         # print(response.content)
         data = json.loads(response.content)
         profile = data['userProfile']
+        print(data['userProfileHonors'])
         bg_list = [
             '01_01', '01_02', '02_01', '02_02', '03_01', '03_02', '04_01',
             '04_02', '05_01', '05_02', '06_01', '06_02'
