@@ -68,11 +68,12 @@ async def gacha_ten(session):
     r4_cnt = 0
     r3_cnt = 0
     for card in result:
+
         if card['id'] in up_indexes:
             up_cnt += 1
-        if card['rarity'] == 4:
+        if card['cardRarityType'] == 'rarity_4':
             r4_cnt += 1
-        if card['rarity'] == 3:
+        if card['cardRarityType'] == 'rarity_3':
             r3_cnt += 1
     favor = check_favor(user_qq)
     if up_cnt > 1:
@@ -145,25 +146,25 @@ def gacha_one(rates, up_rate, cards, up_cards):
     elif pick <= up_rate + r4_rate:
         # r4: uniform choice from other r4 cards
         for idx, card in enumerate(cards):
-            if card['rarity'] == 4:
+            if card['cardRarityType'] == 'rarity_4':
                 charas.append(card)
         return random.choice(charas)
     elif pick <= up_rate + r4_rate + r3_rate:
         # r3
         for idx, card in enumerate(cards):
-            if card['rarity'] == 3:
+            if card['cardRarityType'] == 'rarity_3':
                 charas.append(card)
         return random.choice(charas)
     elif pick <= up_rate + r4_rate + r3_rate + r2_rate:
         # r2
         for idx, card in enumerate(cards):
-            if card['rarity'] == 2:
+            if card['cardRarityType'] == 'rarity_2':
                 charas.append(card)
         return random.choice(charas)
     else:
         # r1 impossible
         for idx, card in enumerate(cards):
-            if card['rarity'] == 1:
+            if card['cardRarityType'] == 'rarity_1':
                 charas.append(card)
         return random.choice(charas)
 
