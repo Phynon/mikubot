@@ -54,50 +54,52 @@ async def prepare_honor_images(profile_honor: dict) -> tuple:
     honor_metas = dict(zip(honor_keys, honor_data))
     honor_groups_keys = [item['id'] for item in honor_groups_data]
     honor_groups = dict(zip(honor_groups_keys, honor_groups_data))
-    honor_thumbnails = []
-    honor_rarities = []
-    honor_names = []
 
     print(profile_honor)
 
+    honor_thumbnails = []
     for i in range(3):
-        if f'honorId{i + 1}' not in profile_honor:
-            image = Image.new('RGBA', [1, 1])
-            honor_thumbnails.append(image)
-            honor_names.append('')
-            honor_rarities.append('')
-            continue
-        honor_id = profile_honor[f'honorId{i + 1}']
-        honor_id = format(int(honor_id), '04d')
-        honor_asset_name = honor_metas[int(honor_id)]['assetbundleName']
-        honor_group_id = honor_metas[int(honor_id)]['groupId']
-        if 'backgroundAssetbundleName' in honor_groups[int(honor_group_id)]:
-            honor_asset_name = honor_groups[int(honor_group_id)]['backgroundAssetbundleName']
-        if not os.path.exists(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    f'assets/honor/{honor_asset_name}/degree_main.png')):
+        image = Image.new('RGBA', [1, 1])
+        honor_thumbnails.append(image)
+    honor_names = ['', '', '']
+    honor_rarities = ['', '', '']
+
+    for honor in profile_honor:
+        if honor['profileHonorType'] == 'bond':
+            pass
+        elif honor['profileHonorType'] == 'normal':
+            honor_id = honor['honorId']
+            seq = honor['seq'] - 1
+            honor_id = format(int(honor_id), '04d')
+            honor_asset_name = honor_metas[int(honor_id)]['assetbundleName']
+            honor_group_id = honor_metas[int(honor_id)]['groupId']
+            if 'backgroundAssetbundleName' in honor_groups[int(honor_group_id)]:
+                honor_asset_name = honor_groups[int(honor_group_id)]['backgroundAssetbundleName']
             if not os.path.exists(
                     os.path.join(
                         os.path.dirname(__file__),
-                        f'assets/honor/{honor_asset_name}')):
-                os.mkdir(
-                    os.path.join(os.path.dirname(__file__),
-                                 f'assets/honor/{honor_asset_name}'))
-            asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/honor/{honor_asset_name}_rip/degree_main.png'
-            raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
-            with open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/honor/{honor_asset_name}/degree_main.png'),
-                    'wb') as f:
-                f.write(raw_data.content)
-        image = Image.open(
-            os.path.join(os.path.dirname(__file__),
-                         f'assets/honor/{honor_asset_name}/degree_main.png'))
-        honor_thumbnails.append(image)
-        honor_names.append(honor_metas[int(honor_id)]['name'])
-        honor_rarities.append(honor_metas[int(honor_id)]['honorRarity'])
+                        f'assets/honor/{honor_asset_name}/degree_main.png')):
+                if not os.path.exists(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/honor/{honor_asset_name}')):
+                    os.mkdir(
+                        os.path.join(os.path.dirname(__file__),
+                                     f'assets/honor/{honor_asset_name}'))
+                asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/honor/{honor_asset_name}_rip/degree_main.png'
+                raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
+                with open(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/honor/{honor_asset_name}/degree_main.png'),
+                        'wb') as f:
+                    f.write(raw_data.content)
+            image = Image.open(
+                os.path.join(os.path.dirname(__file__),
+                             f'assets/honor/{honor_asset_name}/degree_main.png'))
+            honor_thumbnails[seq] = image
+            honor_names[seq] = honor_metas[int(honor_id)]['name']
+            honor_rarities[seq] = honor_metas[int(honor_id)]['honorRarity']
 
     return honor_thumbnails, honor_names, honor_rarities
 
@@ -277,150 +279,7 @@ async def prepare_deck_images(data: dict) -> tuple:
             coro = get_card_assets(client, user_cards, deck_assets, card_id, idx, deck_images, leader)
             tasks.append(asyncio.create_task(coro))
     await asyncio.gather(*tasks)
-    """
-    for idx, card_id in enumerate(deck_list):
-        default_image = user_cards[idx]['defaultImage']
-        assetbundle_name = deck_assets[str(card_id)]
-        deck_frame_ids.append(deck_rarities[str(card_id)])
-        if default_image == 'original':
-            asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/normal/normal.png'
-            if not os.path.exists(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
-                    )):
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}'
-                        )):
-                    os.mkdir(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}'
-                        ))
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}/normal'
-                        )):
-                    os.mkdir(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}/normal'
-                        ))
-                raw_data = requests.get(asset_url, headers=headers_pjsekai)
-                with open(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
-                        ), 'wb') as f:
-                    f.write(raw_data.content)
-            image = Image.open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
-                ))
-            deck_images.append(image)
-            if idx == 0:
-                asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_normal.png'
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}/card_normal.png'
-                        )):
-                    if not os.path.exists(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_small/{assetbundle_name}'
-                            )):
-                        os.mkdir(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_small/{assetbundle_name}'
-                            ))
-                    raw_data = requests.get(asset_url, headers=headers_pjsekai)
-                    with open(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_small/{assetbundle_name}/card_normal.png'
-                            ), 'wb') as f:
-                        f.write(raw_data.content)
-                leader = Image.open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/character/member_small/{assetbundle_name}/card_normal.png'
-                    ))
-        else:
-            asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
-            if not os.path.exists(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
-                    )):
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}'
-                        )):
-                    os.mkdir(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}'
-                        ))
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}/after_training'
-                        )):
-                    os.mkdir(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}/after_training'
-                        ))
-                raw_data = requests.get(asset_url, headers=headers_pjsekai)
-                with open(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
-                        ), 'wb') as f:
-                    f.write(raw_data.content)
-            image = Image.open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
-                ))
-            deck_images.append(image)
-            if idx == 0:
-                asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_after_training.png'
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
-                        )):
-                    if not os.path.exists(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_small/{assetbundle_name}'
-                            )):
-                        os.mkdir(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_small/{assetbundle_name}'
-                            ))
-                    raw_data = requests.get(asset_url, headers=headers_pjsekai)
-                    with open(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
-                            ), 'wb') as f:
-                        f.write(raw_data.content)
-                leader = Image.open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
-                    ))
-        """
+
     return deck_images, deck_frame_ids, leader
 
 @on_command('myprofile', aliases=['me', 'profile'], only_to_me=False)
@@ -438,12 +297,11 @@ async def myprofile(session):
         # print(response.content)
         data = json.loads(response.content)
         profile = data['userProfile']
-        print(data['userProfileHonors'])
         bg_list = [
             '01_01', '01_02', '02_01', '02_02', '03_01', '03_02', '04_01',
             '04_02', '05_01', '05_02', '06_01', '06_02'
         ]
-        honor_coro = prepare_honor_images(profile)
+        honor_coro = prepare_honor_images(data['userProfileHonors'])
         deck_coro = prepare_deck_images(data)
         loop = asyncio.get_event_loop()
         tasks = [loop.create_task(honor_coro), loop.create_task(deck_coro)]
@@ -454,239 +312,6 @@ async def myprofile(session):
         except Exception as identifier:
             print(repr(identifier))
             print(identifier)
-
-        """
-        # honor data
-        print('prepare honor data')
-        honor_meta_url = 'https://sekai-world.github.io/sekai-master-db-diff/honors.json'
-        raw_data = requests.get(honor_meta_url, headers=headers_sekaiviewer)
-        honor_data = json.loads(raw_data.content)
-        honor_groups_url = 'https://sekai-world.github.io/sekai-master-db-diff/honorGroups.json'
-        raw_data = requests.get(honor_groups_url, headers=headers_sekaiviewer)
-        honor_groups_data = json.loads(raw_data.content)
-        # honorGroups.json
-        # honor_metas_dir = os.path.join(os.path.dirname(__file__),
-        #                                'honors.json')
-        # with open(honor_metas_dir, 'r', encoding='utf-8') as f:
-        #     honor_data = json.load(f)
-        # honor_groups_dir = os.path.join(os.path.dirname(__file__),
-        #                                 'honor_groups.json')
-        # with open(honor_groups_dir, 'r', encoding='utf-8') as f:
-        #     honor_groups_data = json.load(f)
-        honor_keys = [item['id'] for item in honor_data]
-        honor_metas = dict(zip(honor_keys, honor_data))
-        honor_groups_keys = [item['id'] for item in honor_groups_data]
-        honor_groups = dict(zip(honor_groups_keys, honor_groups_data))
-        honor_thumbnails = []
-        honor_rarities = []
-        honor_names = []
-
-        for i in range(3):
-            if f'honorId{i + 1}' not in profile:
-                image = Image.new('RGBA', [1, 1])
-                honor_thumbnails.append(image)
-                honor_names.append('')
-                honor_rarities.append('')
-                continue
-            honor_id = profile[f'honorId{i + 1}']
-            honor_id = format(int(honor_id), '04d')
-            honor_asset_name = honor_metas[int(honor_id)]['assetbundleName']
-            honor_group_id = honor_metas[int(honor_id)]['groupId']
-            if 'backgroundAssetbundleName' in honor_groups[int(honor_group_id)]:
-                honor_asset_name = honor_groups[int(honor_group_id)]['backgroundAssetbundleName']
-            if not os.path.exists(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/honor/{honor_asset_name}/degree_main.png')):
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/honor/{honor_asset_name}')):
-                    os.mkdir(
-                        os.path.join(os.path.dirname(__file__),
-                                     f'assets/honor/{honor_asset_name}'))
-                asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/honor/{honor_asset_name}_rip/degree_main.png'
-                raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
-                with open(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/honor/{honor_asset_name}/degree_main.png'),
-                        'wb') as f:
-                    f.write(raw_data.content)
-            image = Image.open(
-                os.path.join(os.path.dirname(__file__),
-                             f'assets/honor/{honor_asset_name}/degree_main.png'))
-            honor_thumbnails.append(image)
-            honor_names.append(honor_metas[int(honor_id)]['name'])
-            honor_rarities.append(honor_metas[int(honor_id)]['honorRarity'])
-        """
-        """
-        # deck data
-        print('prepare deck data')
-        cards_list_dir = os.path.join(os.path.dirname(__file__),
-                                      'cards_list.json')
-        with open(cards_list_dir, 'r', encoding='utf-8') as f:
-            cards = json.load(f)
-        deck_list = []
-        deck_assets = {}
-        deck_images = []
-        deck_rarities = {}
-        deck_frame_ids = []
-        user_cards = []
-        time.sleep(0.01)
-        for idx in range(5):
-            deck_list.append(data['userDecks'][0][f'member{idx + 1}'])
-            for card in data['userCards']:
-                if card['cardId'] == data['userDecks'][0][f'member{idx + 1}']:
-                    user_cards.append(card)
-        for idx, card in enumerate(cards):
-            if card['id'] in deck_list:
-                deck_assets[f"{card['id']}"]  = card['assetbundleName']
-                deck_rarities[f"{card['id']}"] = card['rarity']
-
-        for idx, card_id in enumerate(deck_list):
-            default_image = user_cards[idx]['defaultImage']
-            assetbundle_name = deck_assets[str(card_id)]
-            deck_frame_ids.append(deck_rarities[str(card_id)])
-            if default_image == 'original':
-                asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/normal/normal.png'
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
-                        )):
-                    if not os.path.exists(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}'
-                            )):
-                        os.mkdir(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}'
-                            ))
-                    if not os.path.exists(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}/normal'
-                            )):
-                        os.mkdir(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}/normal'
-                            ))
-                    raw_data = requests.get(asset_url, headers=headers_pjsekai)
-                    with open(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
-                            ), 'wb') as f:
-                        f.write(raw_data.content)
-                image = Image.open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/character/member_cutout/{assetbundle_name}/normal/normal.png'
-                    ))
-                deck_images.append(image)
-                if idx == 0:
-                    asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_normal.png'
-                    if not os.path.exists(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_small/{assetbundle_name}/card_normal.png'
-                            )):
-                        if not os.path.exists(
-                                os.path.join(
-                                    os.path.dirname(__file__),
-                                    f'assets/character/member_small/{assetbundle_name}'
-                                )):
-                            os.mkdir(
-                                os.path.join(
-                                    os.path.dirname(__file__),
-                                    f'assets/character/member_small/{assetbundle_name}'
-                                ))
-                        raw_data = requests.get(asset_url, headers=headers_pjsekai)
-                        with open(
-                                os.path.join(
-                                    os.path.dirname(__file__),
-                                    f'assets/character/member_small/{assetbundle_name}/card_normal.png'
-                                ), 'wb') as f:
-                            f.write(raw_data.content)
-                    leader = Image.open(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}/card_normal.png'
-                        ))
-            else:
-                asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
-                        )):
-                    if not os.path.exists(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}'
-                            )):
-                        os.mkdir(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}'
-                            ))
-                    if not os.path.exists(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}/after_training'
-                            )):
-                        os.mkdir(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}/after_training'
-                            ))
-                    raw_data = requests.get(asset_url, headers=headers_pjsekai)
-                    with open(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
-                            ), 'wb') as f:
-                        f.write(raw_data.content)
-                image = Image.open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
-                    ))
-                deck_images.append(image)
-                if idx == 0:
-                    asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{assetbundle_name}/card_after_training.png'
-                    if not os.path.exists(
-                            os.path.join(
-                                os.path.dirname(__file__),
-                                f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
-                            )):
-                        if not os.path.exists(
-                                os.path.join(
-                                    os.path.dirname(__file__),
-                                    f'assets/character/member_small/{assetbundle_name}'
-                                )):
-                            os.mkdir(
-                                os.path.join(
-                                    os.path.dirname(__file__),
-                                    f'assets/character/member_small/{assetbundle_name}'
-                                ))
-                        raw_data = requests.get(asset_url, headers=headers_pjsekai)
-                        with open(
-                                os.path.join(
-                                    os.path.dirname(__file__),
-                                    f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
-                                ), 'wb') as f:
-                            f.write(raw_data.content)
-                    leader = Image.open(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
-                        ))
-        """
         # music data
         print('prepare music data')
         musics = data['userMusics']
@@ -724,22 +349,23 @@ async def myprofile(session):
         tmp = Image.open(
             os.path.join(os.path.dirname(__file__),
                          f'assets/background/android_bg_unit{bg}.png'))
+        tmp = tmp.resize((2160 * 2, 1920 * 2), resample=Image.LANCZOS)
         word = profile['word']
         font_t_jp = ImageFont.truetype(
             os.path.join(os.path.dirname(__file__),
-                         'assets/fonts/BIZ-UDPGothicB.ttf'), 50)
+                         'assets/fonts/BIZ-UDPGothicB.ttf'), 50 * 2)
         font_t_en = ImageFont.truetype(
             os.path.join(os.path.dirname(__file__),
-                         'assets/fonts/BIZ-UDPGothicB.ttf'), 45)
+                         'assets/fonts/BIZ-UDPGothicB.ttf'), 45 * 2)
         font_t2_en = ImageFont.truetype(
             os.path.join(os.path.dirname(__file__),
-                         'assets/fonts/BIZ-UDPGothicB.ttf'), 30)
+                         'assets/fonts/BIZ-UDPGothicB.ttf'), 30 * 2)
         font_c_jp = ImageFont.truetype(
             os.path.join(os.path.dirname(__file__),
-                         'assets/fonts/BIZ-UDPGothicB.ttf'), 35)
+                         'assets/fonts/BIZ-UDPGothicB.ttf'), 35 * 2)
         font_c_en = ImageFont.truetype(
             os.path.join(os.path.dirname(__file__),
-                         'assets/fonts/BIZ-UDPGothicB.ttf'), 26)
+                         'assets/fonts/BIZ-UDPGothicB.ttf'), 26 * 2)
         draw = ImageDraw.Draw(tmp)
 
         # challange data
@@ -771,165 +397,167 @@ async def myprofile(session):
         print('prepare profile')
         # part 1 profile
         # title border
-        draw.rounded_rectangle(xy=[62, 100, 1302, 180],
-                               radius=20,
+        draw.rounded_rectangle(xy=[62 * 2, 100 * 2, 1302 * 2, 180 * 2],
+                               radius=20 * 2,
                                fill='#39c5bb',
                                outline=None,
-                               width=3)
-        draw.text(xy=(92, 60),
+                               width=3 * 2)
+        draw.text(xy=(92 * 2, 60 * 2),
                   text='PROFILE',
                   fill='#39c5bb',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # title
-        draw.rounded_rectangle(xy=[60, 100, 1300, 180],
-                               radius=20,
+        draw.rounded_rectangle(xy=[60 * 2, 100 * 2, 1300 * 2, 180 * 2],
+                               radius=20 * 2,
                                fill='#444466',
                                outline=None,
-                               width=3)
-        draw.text(xy=(90, 115),
+                               width=3 * 2)
+        draw.text(xy=(90 * 2, 115 * 2),
                   text='プロファイル',
                   fill='#ffffff',
                   font=font_t_jp,
                   stroke_width=0)
-        draw.text(xy=(90, 60),
+        draw.text(xy=(90 * 2, 60 * 2),
                   text='PROFILE',
                   fill='#444466',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # main
-        leader = leader[0].resize((600, 338), Image.ANTIALIAS)
+        leader = leader[0].resize((600 * 2, 338 * 2), Image.LANCZOS)
         # print(leader.size)
-        mask = Image.new('RGBA', (600, 338))
+        mask = Image.new('RGBA', (600 * 2, 338 * 2))
         draw_mask = ImageDraw.Draw(mask)
-        draw_mask.rounded_rectangle(xy=[0, 0, 600, 338],
-                                    radius=15,
+        draw_mask.rounded_rectangle(xy=[0, 0, 600 * 2, 338 * 2],
+                                    radius=15 * 2,
                                     fill='#ffffe0',
                                     outline='#e6e6e6',
-                                    width=3)
-        tmp.paste(im=leader, box=(80, 210), mask=mask)
-        draw.rounded_rectangle(xy=[80, 210, 680, 548],
-                               radius=15,
+                                    width=3 * 2)
+        tmp.paste(im=leader, box=(80 * 2, 210 * 2), mask=mask)
+        draw.rounded_rectangle(xy=[80 * 2, 210 * 2, 680 * 2, 548 * 2],
+                               radius=15 * 2,
                                fill=None,
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[720, 210, 1280, 548],
-                               radius=20,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[720 * 2, 210 * 2, 1280 * 2, 548 * 2],
+                               radius=20 * 2,
                                fill='#ffffe0',
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[740, 229, 920, 289],
-                               radius=30,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[740 * 2, 229 * 2, 920 * 2, 289 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[740, 309, 920, 369],
-                               radius=30,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[740 * 2, 309 * 2, 920 * 2, 369 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[740, 389, 920, 449],
-                               radius=30,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[740 * 2, 389 * 2, 920 * 2, 449 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[740, 469, 920, 529],
-                               radius=30,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[740 * 2, 469 * 2, 920 * 2, 529 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.text(xy=(780, 245),
+                               width=3 * 2)
+        draw.text(xy=(780 * 2, 245 * 2),
                   text='NAME',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
-        draw.text(xy=(798, 325),
+                  stroke_width=1 * 2)
+        draw.text(xy=(798 * 2, 325 * 2),
                   text='UID',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
-        draw.text(xy=(780, 405),
+                  stroke_width=1 * 2)
+        draw.text(xy=(780 * 2, 405 * 2),
                   text='RANK',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
-        draw.text(xy=(755, 485),
+                  stroke_width=1 * 2)
+        draw.text(xy=(755 * 2, 485 * 2),
                   text='TWITTER',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
-        draw.text(xy=(940, 240),
+                  stroke_width=1 * 2)
+        draw.text(xy=(940 * 2, 240 * 2),
                   text=data['user']['userGamedata']['name'],
                   fill='#444466',
                   font=font_c_jp,
-                  stroke_width=1)
-        draw.text(xy=(940, 327),
+                  stroke_width=1 * 2)
+        draw.text(xy=(940 * 2, 327 * 2),
                   text=str(data['user']['userGamedata']['userId']),
                   fill='#444466',
                   font=font_c_en,
-                  stroke_width=1)
-        draw.text(xy=(940, 400),
+                  stroke_width=1 * 2)
+        draw.text(xy=(940 * 2, 400 * 2),
                   text=str(data['user']['userGamedata']['rank']),
                   fill='#444466',
                   font=font_c_jp,
-                  stroke_width=1)
-        draw.text(xy=(940, 480),
+                  stroke_width=1 * 2)
+        draw.text(xy=(940 * 2, 480 * 2),
                   text=data['userProfile']['twitterId'],
                   fill='#444466',
                   font=font_c_jp,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # part 2 honorI
         print('prepare honor')
         # title border
-        draw.rounded_rectangle(xy=[62, 610, 1302, 690],
-                               radius=20,
+        draw.rounded_rectangle(xy=[62 * 2, 610 * 2, 1302 * 2, 690 * 2],
+                               radius=20 * 2,
                                fill='#39c5bb',
                                outline=None,
-                               width=3)
-        draw.text(xy=(92, 570),
+                               width=3 * 2)
+        draw.text(xy=(92 * 2, 570 * 2),
                   text='HONOR',
                   fill='#39c5bb',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # title
-        draw.rounded_rectangle(xy=[60, 610, 1300, 690],
-                               radius=20,
+        draw.rounded_rectangle(xy=[60 * 2, 610 * 2, 1300 * 2, 690 * 2],
+                               radius=20 * 2,
                                fill='#444466',
                                outline=None,
-                               width=3)
-        draw.text(xy=(90, 625),
+                               width=3 * 2)
+        draw.text(xy=(90 * 2, 625 * 2),
                   text='称　号',
                   fill='#ffffff',
                   font=font_t_jp,
                   stroke_width=0)
-        draw.text(xy=(90, 570),
+        draw.text(xy=(90 * 2, 570 * 2),
                   text='HONOR',
                   fill='#444466',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # main
         for col, image in enumerate(honor_thumbnails):
-            tmp.paste(im=image, box=((380 + 10) * col + 60, 730), mask=image)
+            image = image.resize((380 * 2, 80 * 2), Image.LANCZOS)
+            tmp.paste(im=image, box=(((380 + 10) * col + 60) * 2, 730 * 2), mask=image)
+            print(honor_thumbnails[col].size)
             if honor_rarities[col] == 'middle':
                 feather = Image.open(
                     os.path.join(os.path.dirname(__file__),
-                                 'assets/frame/feather.png'))
+                                 'assets/frame/feather.png')).resize((380 * 2, 80 * 2), Image.LANCZOS)
                 tmp.paste(im=feather,
-                          box=((380 + 10) * col + 60, 730),
+                          box=(((380 + 10) * col + 60) * 2, 730 * 2),
                           mask=feather)
             elif honor_rarities[col] == 'high':
                 flower = Image.open(
                     os.path.join(os.path.dirname(__file__),
-                                 'assets/frame/flower.png'))
+                                 'assets/frame/flower.png')).resize((380 * 2, 80 * 2), Image.LANCZOS)
                 tmp.paste(im=flower,
-                          box=((380 + 10) * col + 60, 730),
+                          box=(((380 + 10) * col + 60) * 2, 730 * 2),
                           mask=flower)
             elif honor_rarities[col] == 'highest':
                 flower_ring = Image.open(
                     os.path.join(os.path.dirname(__file__),
-                                 'assets/frame/flower_ring.png'))
+                                 'assets/frame/flower_ring.png')).resize((380 * 2, 80 * 2), Image.LANCZOS)
                 tmp.paste(im=flower_ring,
-                          box=((380 + 10) * col + 60, 730),
+                          box=(((380 + 10) * col + 60) * 2, 730 * 2),
                           mask=flower_ring)
             else:
                 pass
@@ -938,188 +566,187 @@ async def myprofile(session):
                 event_rank = format(int(event_rank), '06d')
                 top_fig = Image.open(
                     os.path.join(os.path.dirname(__file__),
-                                 f'assets/frame/honor_top_{event_rank}.png'))
+                                 f'assets/frame/honor_top_{event_rank}.png')).resize((150 * 2, 78 * 2), Image.LANCZOS)
                 tmp.paste(im=top_fig,
-                          box=((380 + 10) * col + 250, 730),
+                          box=(((380 + 10) * col + 250) * 2, 730 * 2),
                           mask=top_fig)
-
 
         # part 3 deck
         print('prepare deck')
         # title border
-        draw.rounded_rectangle(xy=[62, 880, 1302, 960],
-                               radius=20,
+        draw.rounded_rectangle(xy=[62 * 2, 880 * 2, 1302 * 2, 960 * 2],
+                               radius=20 * 2,
                                fill='#39c5bb',
                                outline=None,
-                               width=3)
-        draw.text(xy=(92, 840),
+                               width=3 * 2)
+        draw.text(xy=(92 * 2, 840 * 2),
                   text='DECK MEMBER',
                   fill='#39c5bb',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # title
-        draw.rounded_rectangle(xy=[60, 880, 1300, 960],
-                               radius=20,
+        draw.rounded_rectangle(xy=[60 * 2, 880 * 2, 1300 * 2, 960 * 2],
+                               radius=20 * 2,
                                fill='#444466',
                                outline=None,
-                               width=3)
-        draw.text(xy=(90, 895),
+                               width=3 * 2)
+        draw.text(xy=(90 * 2, 895 * 2),
                   text='デック　メンバー',
                   fill='#ffffff',
                   font=font_t_jp,
                   stroke_width=0)
-        draw.text(xy=(90, 840),
+        draw.text(xy=(90 * 2, 840 * 2),
                   text='DECK MEMBER',
                   fill='#444466',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # main
         for idx, img in enumerate(deck_images):
             frame = Image.open(
                 os.path.join(os.path.dirname(__file__),
                              f'assets/frame/cardFrame_{deck_frame_ids[idx]}.png')).resize(
-                                 (220, 440), Image.ANTIALIAS)
-            img = img.crop((163, 0, 438, 550)).resize((220, 440),
-                                                      Image.ANTIALIAS)
-            tmp.paste(im=img, box=((220 + 25) * idx + 80, 1000), mask=img)
-            tmp.paste(im=frame, box=((220 + 25) * idx + 80, 1000), mask=frame)
+                (220 * 2, 440 * 2), Image.LANCZOS)
+            img = img.crop((163, 0, 438, 550)).resize((220 * 2, 440 * 2),
+                                                      Image.LANCZOS)
+            tmp.paste(im=img, box=(((220 + 25) * idx + 80) * 2, 1000 * 2), mask=img)
+            tmp.paste(im=frame, box=(((220 + 25) * idx + 80) * 2, 1000 * 2), mask=frame)
 
         # part 4 challenge
         print('prepare challenge')
         # title border
-        draw.rounded_rectangle(xy=[1362, 100, 2102, 180],
-                               radius=20,
+        draw.rounded_rectangle(xy=[1362 * 2, 100 * 2, 2102 * 2, 180 * 2],
+                               radius=20 * 2,
                                fill='#39c5bb',
                                outline=None,
-                               width=3)
-        draw.text(xy=(1392, 60),
+                               width=3 * 2)
+        draw.text(xy=(1392 * 2, 60 * 2),
                   text='CHALLENGE LIVE',
                   fill='#39c5bb',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # title
-        draw.rounded_rectangle(xy=[1360, 100, 2100, 180],
-                               radius=20,
+        draw.rounded_rectangle(xy=[1360 * 2, 100 * 2, 2100 * 2, 180 * 2],
+                               radius=20 * 2,
                                fill='#444466',
                                outline=None,
-                               width=3)
-        draw.text(xy=(1390, 115),
+                               width=3 * 2)
+        draw.text(xy=(1390 * 2, 115 * 2),
                   text='チャレンジ　ライブ',
                   fill='#ffffff',
                   font=font_t_jp,
                   stroke_width=0)
-        draw.text(xy=(1390, 60),
+        draw.text(xy=(1390 * 2, 60 * 2),
                   text='CHALLENGE LIVE',
                   fill='#444466',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # main
         if challange_result[0]['characterId'] < 21:
             chr_tl = Image.open(
                 os.path.join(
                     os.path.dirname(__file__),
                     f"assets/character/chr_tl/chr_tl_{challange_result[0]['characterId']}.png"
-                )).resize((207, 407), Image.ANTIALIAS)
-            tmp.paste(chr_tl, (1390, 220), mask=chr_tl)
-            draw.rounded_rectangle(xy=[1390, 220, 1597, 627],
-                                   radius=10,
+                )).resize((207 * 2, 407 * 2), Image.LANCZOS)
+            tmp.paste(chr_tl, (1390 * 2, 220 * 2), mask=chr_tl)
+            draw.rounded_rectangle(xy=[1390 * 2, 220 * 2, 1597 * 2, 627 * 2],
+                                   radius=10 * 2,
                                    fill=None,
                                    outline='#e6e6e6',
-                                   width=3)
+                                   width=3 * 2)
         else:
             chr_tl = Image.open(
                 os.path.join(
                     os.path.dirname(__file__),
                     f"assets/character/chr_tl/chr_tl_{challange_result[0]['characterId']}.png"
-                )).resize((158, 407), Image.ANTIALIAS)
-            tmp.paste(chr_tl, (1415, 220), mask=chr_tl)
-            draw.rounded_rectangle(xy=[1415, 220, 1573, 627],
-                                   radius=10,
+                )).resize((158 * 2, 407 * 2), Image.LANCZOS)
+            tmp.paste(chr_tl, (1415 * 2, 220 * 2), mask=chr_tl)
+            draw.rounded_rectangle(xy=[1415 * 2, 220 * 2, 1573 * 2, 627 * 2],
+                                   radius=10 * 2,
                                    fill=None,
                                    outline='#e6e6e6',
-                                   width=3)
-        draw.rounded_rectangle(xy=[1630, 220, 2060, 627],
-                               radius=20,
+                                   width=3 * 2)
+        draw.rounded_rectangle(xy=[1630 * 2, 220 * 2, 2060 * 2, 627 * 2],
+                               radius=20 * 2,
                                fill='#ffffe0',
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[1670, 260, 2020, 320],
-                               radius=30,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[1670 * 2, 260 * 2, 2020 * 2, 320 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.text(xy=(1730, 275),
+                               width=3 * 2)
+        draw.text(xy=(1730 * 2, 275 * 2),
                   text='HIGH SCORE',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
-        draw.text(xy=(1730, 335),
+                  stroke_width=1 * 2)
+        draw.text(xy=(1730 * 2, 335 * 2),
                   text=str(challange_result[0]['highScore']),
                   fill='#444466',
                   font=font_t_en,
-                  stroke_width=1)
-        draw.rounded_rectangle(xy=[1650, 400, 2040, 460],
-                               radius=30,
+                  stroke_width=1 * 2)
+        draw.rounded_rectangle(xy=[1650 * 2, 400 * 2, 2040 * 2, 460 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.text(xy=(1690, 415),
+                               width=3 * 2)
+        draw.text(xy=(1690 * 2, 415 * 2),
                   text='CHALLENGE RANK',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         chara_circ = Image.open(
             os.path.join(
                 os.path.dirname(__file__),
-                f'assets/character/chr_ts/chr_ts_{best_rank_id + 1}.png'))
-        tmp.paste(chara_circ, (1690, 470), mask=chara_circ)
-        draw.rounded_rectangle(xy=[1870, 472, 1992, 600],
-                               radius=64,
+                f'assets/character/chr_ts/chr_ts_{best_rank_id + 1}.png')).resize((128 * 2, 128 * 2), Image.LANCZOS)
+        tmp.paste(chara_circ, (1690 * 2, 470 * 2), mask=chara_circ)
+        draw.rounded_rectangle(xy=[1870 * 2, 472 * 2, 1992 * 2, 600 * 2],
+                               radius=64 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=4)
-        draw.rounded_rectangle(xy=[1874, 478, 1988, 594],
-                               radius=56,
+                               width=4 * 2)
+        draw.rounded_rectangle(xy=[1874 * 2, 478 * 2, 1988 * 2, 594 * 2],
+                               radius=56 * 2,
                                fill='#ffffff',
                                outline='#39c5bb',
-                               width=4)
-        draw.text(xy=(1932, 556),
+                               width=4 * 2)
+        draw.text(xy=(1932 * 2, 556 * 2),
                   text=str(max(challange_ranks)),
                   fill='#444466',
                   font=font_t_en,
                   anchor='ms',
                   align='center',
-                  stroke_width=1)
+                  stroke_width=1 * 2)
 
         # part 5 chara
         print('prepare chara')
         # title border
-        draw.rounded_rectangle(xy=[1362, 700, 2102, 780],
-                               radius=20,
+        draw.rounded_rectangle(xy=[1362 * 2, 700 * 2, 2102 * 2, 780 * 2],
+                               radius=20 * 2,
                                fill='#39c5bb',
                                outline=None,
-                               width=3)
-        draw.text(xy=(1392, 660),
+                               width=3 * 2)
+        draw.text(xy=(1392 * 2, 660 * 2),
                   text='CHARACTER RANK',
                   fill='#39c5bb',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # title
-        draw.rounded_rectangle(xy=[1360, 700, 2100, 780],
-                               radius=20,
+        draw.rounded_rectangle(xy=[1360 * 2, 700 * 2, 2100 * 2, 780 * 2],
+                               radius=20 * 2,
                                fill='#444466',
                                outline=None,
-                               width=3)
-        draw.text(xy=(1390, 715),
+                               width=3 * 2)
+        draw.text(xy=(1390 * 2, 715 * 2),
                   text='キャラクター　ランク',
                   fill='#ffffff',
                   font=font_t_jp,
                   stroke_width=0)
-        draw.text(xy=(1390, 660),
+        draw.text(xy=(1390 * 2, 660 * 2),
                   text='CHARACTER RANK',
                   fill='#444466',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # main
         for row in range(6):
             for col in range(4):
@@ -1128,34 +755,34 @@ async def myprofile(session):
                     os.path.join(
                         os.path.dirname(__file__),
                         f'assets/character/chr_ts/chr_ts_{idx}.png')).resize(
-                            (100, 100), Image.ANTIALIAS)
-                draw.rounded_rectangle(xy=[(100 + 80) * col + 1420,
-                                           (100 + 10) * row + 860,
-                                           (100 + 80) * col + 1540,
-                                           (100 + 10) * row + 920],
-                                       radius=30,
+                    (100 * 2, 100 * 2), Image.LANCZOS)
+                draw.rounded_rectangle(xy=[((100 + 80) * col + 1420) * 2,
+                                           ((100 + 10) * row + 860) * 2,
+                                           ((100 + 80) * col + 1540) * 2,
+                                           ((100 + 10) * row + 920) * 2],
+                                       radius=30 * 2,
                                        fill='#ffffff',
                                        outline='#e6e6e6',
-                                       width=5)
-                draw.rounded_rectangle(xy=[(100 + 80) * col + 1420,
-                                           (100 + 10) * row + 860,
-                                           (100 + 80) * col + 1540,
-                                           (100 + 10) * row + 920],
-                                       radius=30,
+                                       width=5 * 2)
+                draw.rounded_rectangle(xy=[((100 + 80) * col + 1420) * 2,
+                                           ((100 + 10) * row + 860) * 2,
+                                           ((100 + 80) * col + 1540) * 2,
+                                           ((100 + 10) * row + 920) * 2],
+                                       radius=30 * 2,
                                        fill='#ffffff',
                                        outline='#39c5bb',
-                                       width=3)
+                                       width=3 * 2)
                 tmp.paste(im=chr_ts,
-                          box=((100 + 80) * col + 1380,
-                               (100 + 10) * row + 820),
+                          box=(((100 + 80) * col + 1380) * 2,
+                               ((100 + 10) * row + 820) * 2),
                           mask=chr_ts)
-                draw.text(xy=((100 + 80) * col + 1505, (100 + 10) * row + 905),
+                draw.text(xy=(((100 + 80) * col + 1505) * 2, ((100 + 10) * row + 905) * 2),
                           text=str(chara_ranks[idx - 1]),
                           fill='#444466',
                           font=font_c_jp,
                           anchor='ms',
                           align='center',
-                          stroke_width=1)
+                          stroke_width=1 * 2)
         for idx in range(25, 27):
             row = 6
             col = idx - 25
@@ -1163,145 +790,145 @@ async def myprofile(session):
                 os.path.join(
                     os.path.dirname(__file__),
                     f'assets/character/chr_ts/chr_ts_{idx}.png')).resize(
-                        (100, 100), Image.ANTIALIAS)
-            draw.rounded_rectangle(xy=[(100 + 80) * col + 1420,
-                                       (100 + 10) * row + 860,
-                                       (100 + 80) * col + 1540,
-                                       (100 + 10) * row + 920],
-                                   radius=30,
+                (100 * 2, 100 * 2), Image.LANCZOS)
+            draw.rounded_rectangle(xy=[((100 + 80) * col + 1420) * 2,
+                                       ((100 + 10) * row + 860) * 2,
+                                       ((100 + 80) * col + 1540) * 2,
+                                       ((100 + 10) * row + 920) * 2],
+                                   radius=30 * 2,
                                    fill='#ffffff',
                                    outline='#e6e6e6',
-                                   width=5)
-            draw.rounded_rectangle(xy=[(100 + 80) * col + 1420,
-                                       (100 + 10) * row + 860,
-                                       (100 + 80) * col + 1540,
-                                       (100 + 10) * row + 920],
-                                   radius=30,
+                                   width=5 * 2)
+            draw.rounded_rectangle(xy=[((100 + 80) * col + 1420) * 2,
+                                       ((100 + 10) * row + 860) * 2,
+                                       ((100 + 80) * col + 1540) * 2,
+                                       ((100 + 10) * row + 920) * 2],
+                                   radius=30 * 2,
                                    fill='#ffffff',
                                    outline='#39c5bb',
-                                   width=3)
+                                   width=3 * 2)
             tmp.paste(im=chr_ts,
-                      box=((100 + 80) * col + 1380, (100 + 10) * row + 820),
+                      box=(((100 + 80) * col + 1380) * 2, ((100 + 10) * row + 820) * 2),
                       mask=chr_ts)
-            draw.text(xy=((100 + 80) * col + 1505, (100 + 10) * row + 905),
+            draw.text(xy=(((100 + 80) * col + 1505) * 2, ((100 + 10) * row + 905) * 2),
                       text=str(chara_ranks[idx - 1]),
                       fill='#444466',
                       font=font_c_jp,
                       anchor='ms',
                       align='center',
-                      stroke_width=1)
+                      stroke_width=1 * 2)
 
         # part 6 music
         print('prepare music')
         # title border
-        draw.rounded_rectangle(xy=[62, 1505, 1302, 1585],
-                               radius=20,
+        draw.rounded_rectangle(xy=[62 * 2, 1505 * 2, 1302 * 2, 1585 * 2],
+                               radius=20 * 2,
                                fill='#39c5bb',
                                outline=None,
-                               width=3)
-        draw.text(xy=(92, 1465),
+                               width=3 * 2)
+        draw.text(xy=(92 * 2, 1465 * 2),
                   text='LIVE STATUS',
                   fill='#39c5bb',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # title
-        draw.rounded_rectangle(xy=[60, 1505, 1300, 1585],
-                               radius=20,
+        draw.rounded_rectangle(xy=[60 * 2, 1505 * 2, 1300 * 2, 1585 * 2],
+                               radius=20 * 2,
                                fill='#444466',
                                outline=None,
-                               width=3)
-        draw.text(xy=(90, 1520),
+                               width=3 * 2)
+        draw.text(xy=(90 * 2, 1520 * 2),
                   text='ライブ　ステータス',
                   fill='#ffffff',
                   font=font_t_jp,
                   stroke_width=0)
-        draw.text(xy=(90, 1465),
+        draw.text(xy=(90 * 2, 1465 * 2),
                   text='LIVE STATUS',
                   fill='#444466',
                   font=font_t_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         # main みなに伝えたい想い
-        draw.rounded_rectangle(xy=[80, 1620, 1280, 1880],
-                               radius=20,
+        draw.rounded_rectangle(xy=[80 * 2, 1620 * 2, 1280 * 2, 1880 * 2],
+                               radius=20 * 2,
                                fill=None,
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[80, 1620, 1280, 1880],
-                               radius=20,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[80 * 2, 1620 * 2, 1280 * 2, 1880 * 2],
+                               radius=20 * 2,
                                fill='#ffffe0',
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[100, 1640, 360, 1700],
-                               radius=30,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[100 * 2, 1640 * 2, 360 * 2, 1700 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[100, 1720, 360, 1780],
-                               radius=30,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[100 * 2, 1720 * 2, 360 * 2, 1780 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.rounded_rectangle(xy=[100, 1800, 360, 1860],
-                               radius=30,
+                               width=3 * 2)
+        draw.rounded_rectangle(xy=[100 * 2, 1800 * 2, 360 * 2, 1860 * 2],
+                               radius=30 * 2,
                                fill='#39c5bb',
                                outline='#e6e6e6',
-                               width=3)
-        draw.text(xy=(170, 1655),
+                               width=3 * 2)
+        draw.text(xy=(170 * 2, 1655 * 2),
                   text='CLEAR',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
-        draw.text(xy=(122, 1735),
+                  stroke_width=1 * 2)
+        draw.text(xy=(122 * 2, 1735 * 2),
                   text='FULL COMBO',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
-        draw.text(xy=(120, 1815),
+                  stroke_width=1 * 2)
+        draw.text(xy=(120 * 2, 1815 * 2),
                   text='ALL PERFECT',
                   fill='#ffffff',
                   font=font_t2_en,
-                  stroke_width=1)
+                  stroke_width=1 * 2)
         palette_diff = ['#67dc11', '#33bbed', '#ffaa00', '#ee4566', '#bb33ef']
         for row in range(3):
             for col in range(5):
-                draw.rounded_rectangle(xy=[(110 + 60) * col + 400,
-                                           (60 + 20) * row + 1640,
-                                           (110 + 60) * col + 540,
-                                           (60 + 20) * row + 1700],
-                                       radius=20,
+                draw.rounded_rectangle(xy=[((110 + 60) * col + 400) * 2,
+                                           ((60 + 20) * row + 1640) * 2,
+                                           ((110 + 60) * col + 540) * 2,
+                                           ((60 + 20) * row + 1700) * 2],
+                                       radius=20 * 2,
                                        fill=palette_diff[col],
                                        outline='#e6e6e6',
                                        width=0)
-                draw.text(xy=((110 + 60) * col + 470, (60 + 20) * row + 1684),
+                draw.text(xy=(((110 + 60) * col + 470) * 2, ((60 + 20) * row + 1684) * 2),
                           text=str(music_status[row][col]),
                           fill='#ffffff',
                           font=font_c_jp,
                           anchor='ms',
                           align='center',
-                          stroke_width=1)
+                          stroke_width=1 * 2)
 
         # part 7 post script
         print('prepare ps')
         # main
-        draw.rounded_rectangle(xy=[1440, 1620, 2060, 1850],
-                               radius=20,
+        draw.rounded_rectangle(xy=[1440 * 2, 1620 * 2, 2060 * 2, 1850 * 2],
+                               radius=20 * 2,
                                fill='#ffffff',
                                outline='#e6e6e6',
-                               width=3)
-        lines = textwrap.wrap(word, width=17)
-        y_text = 1620
+                               width=3 * 2)
+        lines = textwrap.wrap(word, width=17 * 2)
+        y_text = 1620 * 2
         width, height = font_c_jp.getsize(word)
         for idx, line in enumerate(lines):
-            draw.text((1460, 1640 + (height + 2) * idx),
+            draw.text((1460 * 2, (1640 + (height + 2) * idx) * 2),
                       line,
                       font=font_c_jp,
                       fill='#444466')
             y_text += height
+        tmp = tmp.resize((2160, 1920), resample=Image.ANTIALIAS)
         tmp.save('/home/phynon/opt/cqhttp/data/images/tmp_result.png')
         profile_result = '[CQ:image,file=tmp_result.png]'
         # tmp.convert('RGB').save('/home/phynon/opt/cqhttp/data/images/tmp_result.jpg')
         # profile_result = '[CQ:image,file=tmp_result.jpg]'
-        print(profile_result)
         await session.send(profile_result)
     except _FinishException as identifier:
         pass
