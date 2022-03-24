@@ -49,20 +49,20 @@ async def gacha_ten(session):
     for idx, card in enumerate(cards):
         if card['id'] in up_indexes:
             up_cards.append(card)
-    rates = (int(gacha['rarity1Rate'] * 10),
-             int(gacha['rarity2Rate'] * 10),
-             int(gacha['rarity3Rate'] * 10),
-             int(gacha['rarity4Rate'] * 10))
+    rates = [0, 0, 0, 0]
+    for gacha_rarity in gacha['gachaCardRarityRates']:
+        if gacha_rarity['cardRarityType'] == 'rarity_birthday':
+            rarity = 4
+        else:
+            rarity = int(gacha_rarity['cardRarityType'][-1])
+        rates[rarity - 1] = int(gacha_rarity['rate'] * 10)
     up_rate = int(len(up_cards) * 4)
     result = []
     for idx in range(9):
         c = gacha_one(rates, up_rate, gacha_cards, up_cards)
         result.append(c)
-    rates = (0,
-             0,
-             int((gacha['rarity3Rate'] + gacha['rarity4Rate']) * 10),
-             int(gacha['rarity4Rate'] * 10))
-    c = gacha_one(rates, up_rate, gacha_cards, up_cards)
+    ceil_rates = [0, 0, rates[2] + rates[3], rates[3]]
+    c = gacha_one(ceil_rates, up_rate, gacha_cards, up_cards)
     result.append(c)
     up_cnt = 0
     r4_cnt = 0
