@@ -1,12 +1,11 @@
 import json
 import os
-from typing import FrozenSet
 
 import requests
 from nonebot import CommandSession, on_command
 
 
-@on_command('myrank', aliases=['sekairank', 'my rank', 'myランク'], only_to_me=False)
+@on_command('myrank', aliases=['sekairank', 'my rank', 'Myrank', 'myランク'], only_to_me=False)
 async def myrank_react(session):
     master_dir = os.path.join(os.path.dirname(__file__), '../metas/master_data.json')
     with open(master_dir, 'r') as f:
@@ -20,6 +19,7 @@ async def myrank_react(session):
         response = requests.post(src, rq)
         print(response.content)
         data = json.loads(response.content)
+        print(response.status_code)
         if 'rankings' in data:
             if not data['rankings']:
                 ranking = (f"第 {event_id} 期活动\n"
@@ -31,6 +31,11 @@ async def myrank_react(session):
                            f"好友码 {data['userId']}\n"
                            f"分数    {data['score']}\n"
                            f"排名    {data['rank']}")
+        elif 'errorCode' in data:
+            if data['errorCode'] == 'event_ranking_aggregate':
+                ranking = '活动排名合计中'
+            else:
+                ranking = '通信エラー：接続ができません'
         else:
             ranking = '通信エラー：接続ができません'
         await session.send(ranking)

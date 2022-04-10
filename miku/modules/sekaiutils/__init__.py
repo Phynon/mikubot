@@ -12,6 +12,15 @@ headers_sekaiviewer = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
 
+headers_pjsekai = {
+    'DNT': '1',
+    'Referer': 'https://pjsek.ai/',
+    'cache-control': 'max-age=0',
+    'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+    'sec-ch-ua-mobile': '?0',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
+
 
 async def check_cooldown(session, user_qq, limiter, time):
     if not limiter.check(user_qq):
@@ -56,8 +65,10 @@ def get_card_asset(asset_name, status):
     card_asset_dir = os.path.join(os.path.dirname(__file__),
                                   f'assets/character/member_small/{asset_name}/card_{status}.png')
     print(f'{asset_name}_{status} to be downloaded:')
-    asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_small/{asset_name}_rip/card_{status}.png'
-    raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
+    # asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_small/{asset_name}_rip/card_{status}.png'
+    asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_small/{asset_name}/card_{status}.png'
+    # raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
+    raw_data = requests.get(asset_url, headers=headers_pjsekai)
     with open(card_asset_dir, 'wb') as f:
         f.write(raw_data.content)
     print('succeeded')
@@ -164,8 +175,9 @@ def audio_update_assets(asset_list):
             pass
         else:
             print(asset_name)
-            url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/music/short/{asset_name}_rip/{asset_name}{suffix}'
-            # url = 'https://assets.pjsek.ai/file/pjsekai-assets/' + path + '/' + asset_name + suffix
-            raw_data = requests.get(url, headers=headers_sekaiviewer)
+            # url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/music/short/{asset_name}_rip/{asset_name}{suffix}'
+            url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/music/short/{asset_name}/{asset_name}{suffix}'
+            # raw_data = requests.get(url, headers=headers_sekaiviewer)
+            raw_data = requests.get(url, headers=headers_pjsekai)
             with open(music_short_dir, 'wb') as f:
                 f.write(raw_data.content)
