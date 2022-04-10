@@ -10,6 +10,8 @@ import asyncio
 import nest_asyncio
 import httpx
 from PIL import Image, ImageDraw, ImageFont
+
+from miku.modules.sekaiutils import check_local_card_asset, get_card_asset
 from miku.utils import FreqLimiter
 from nonebot import CommandSession, on_command
 from nonebot.command import _FinishException
@@ -44,6 +46,39 @@ async def prepare_honor_images(profile_honor: dict) -> tuple:
     ]
     """
     print('prepare honor data')
+
+    # palette
+    chr_bg_palette = [
+        '#33ccbb',
+        '#33aaee',
+        '#ffdd44',
+        '#ee6666',
+        '#bbdd22',
+        '#ffccaa',
+        '#99ccff',
+        '#ffaacc',
+        '#99eedd',
+        '#ff6699',
+        '#00bbdd',
+        '#ff7722',
+        '#0077dd',
+        '#ffbb00',
+        '#ff66bb',
+        '#33dd99',
+        '#bb88ee',
+        '#bb6688',
+        '#8888cc',
+        '#ccaa88',
+        '#ddaacc',
+        '#33ccbb',
+        '#ffbbcc',
+        '#ffcc11',
+        '#ffee11',
+        '#dd4444',
+        '#3366cc'
+    ]
+
+    # fetch normal honor metas
     honor_meta_url = 'https://sekai-world.github.io/sekai-master-db-diff/honors.json'
     raw_data = requests.get(honor_meta_url, headers=headers_sekaiviewer)
     honor_data = json.loads(raw_data.content)
@@ -55,8 +90,15 @@ async def prepare_honor_images(profile_honor: dict) -> tuple:
     honor_groups_keys = [item['id'] for item in honor_groups_data]
     honor_groups = dict(zip(honor_groups_keys, honor_groups_data))
 
-    print(profile_honor)
+    # fetch bonds honor metas
+    bonds_honor_meta_url = 'https://sekai-world.github.io/sekai-master-db-diff/bondsHonors.json'
+    raw_data = requests.get(bonds_honor_meta_url, headers=headers_sekaiviewer)
+    bonds_honor_meta = json.loads(raw_data.content)
+    bonds_words_meta_url = 'https://sekai-world.github.io/sekai-master-db-diff/bondsHonorWords.json'
+    raw_data = requests.get(bonds_words_meta_url, headers=headers_sekaiviewer)
+    bonds_words_meta = json.loads(raw_data.content)
 
+    # initialize
     honor_thumbnails = []
     for i in range(3):
         image = Image.new('RGBA', [1, 1])
@@ -65,8 +107,98 @@ async def prepare_honor_images(profile_honor: dict) -> tuple:
     honor_rarities = ['', '', '']
 
     for honor in profile_honor:
-        if honor['profileHonorType'] == 'bond':
-            pass
+        if honor['profileHonorType'] == 'bonds':
+            seq = honor['seq'] - 1
+            # ugly
+            # traverse
+            for idx, item in enumerate(bonds_honor_meta):
+                if item['id'] == honor['honorId']:
+                    character_id_1 = format(item['gameCharacterUnitId1'], '02d')
+                    character_id_2 = format(item['gameCharacterUnitId2'], '02d')
+                    honor_rarity = item['honorRarity']
+                    honor_name = item['name']
+                pass
+            for idx, item in enumerate(bonds_words_meta):
+                if item['id'] == honor['bondsHonorWordId']:
+                    word_asset = item['assetbundleName']
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/thumbnails/chara_sd/chr_sd_{character_id_1}_01.png')):
+                asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/bonds_honor/character/chr_sd_{character_id_1}_01_rip/chr_sd_{character_id_1}_01.png'
+                raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
+                with open(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/thumbnails/chara_sd/chr_sd_{character_id_1}_01.png'),
+                        'wb') as f:
+                    f.write(raw_data.content)
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/thumbnails/chara_sd/chr_sd_{character_id_2}_01.png')):
+                asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/bonds_honor/character/chr_sd_{character_id_2}_01_rip/chr_sd_{character_id_2}_01.png'
+                raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
+                with open(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/thumbnails/chara_sd/chr_sd_{character_id_2}_01.png'),
+                        'wb') as f:
+                    f.write(raw_data.content)
+            if not os.path.exists(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        f'assets/thumbnails/honor_words/{word_asset}.png')):
+                asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/bonds_honor/word/{word_asset}_01_rip/{word_asset}_01.png'
+                raw_data = requests.get(asset_url, headers=headers_sekaiviewer)
+                with open(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            f'assets/thumbnails/honor_words/{word_asset}_01.png'),
+                        'wb') as f:
+                    f.write(raw_data.content)
+            chr_sd_1 = Image.open(
+                os.path.join(os.path.dirname(__file__),
+                             f'assets/thumbnails/chara_sd/chr_sd_{character_id_1}_01.png'))
+            chr_sd_2 = Image.open(
+                os.path.join(os.path.dirname(__file__),
+                             f'assets/thumbnails/chara_sd/chr_sd_{character_id_2}_01.png'))
+            word = Image.open(
+                os.path.join(os.path.dirname(__file__),
+                             f'assets/thumbnails/honor_words/{word_asset}_01.png'))
+            chr_sd_1 = chr_sd_1.resize((160 * 2, 136 * 2), resample=Image.LANCZOS)
+            chr_sd_2 = chr_sd_2.resize((160 * 2, 136 * 2), resample=Image.LANCZOS)
+            word = word.resize((380 * 2, 80 * 2), resample=Image.LANCZOS)
+            tmp_image = Image.new('RGBA', [380 * 2, 80 * 2])
+            tmp_draw = ImageDraw.Draw(tmp_image)
+            tmp_draw.rounded_rectangle(xy=[2 * 2, 2 * 2, 378 * 2, 78 * 2],
+                                       radius=39 * 2,
+                                       fill='#fefefe')
+            # chr_bg_1
+            tmp_draw.rounded_rectangle(xy=[12 * 2, 12 * 2, 184 * 2, 68 * 2],
+                                       radius=34 * 2,
+                                       fill=chr_bg_palette[int(character_id_1)])
+            tmp_draw.rectangle(xy=[100 * 2, 12 * 2, 184 * 2, 68 * 2],
+                               fill=chr_bg_palette[int(character_id_1)])
+            # chr_bg_2
+            tmp_draw.rounded_rectangle(xy=[184 * 2, 12 * 2, 368 * 2, 68 * 2],
+                                       radius=34 * 2,
+                                       fill=chr_bg_palette[int(character_id_2)])
+            tmp_draw.rectangle(xy=[184 * 2, 12 * 2, 300 * 2, 68 * 2],
+                               fill=chr_bg_palette[int(character_id_2)])
+            tmp_image.paste(im=chr_sd_1, box=(0, -55 * 2), mask=chr_sd_1)
+            tmp_image.paste(im=chr_sd_2, box=(220 * 2, -55 * 2), mask=chr_sd_2)
+            tmp_image.paste(im=word, box=(0, 0), mask=word)
+            image = Image.new('RGBA', [380 * 2, 80 * 2])
+            draw = ImageDraw.Draw(image)
+            draw.rounded_rectangle(xy=[2 * 2, 2 * 2, 378 * 2, 78 * 2],
+                                   radius=39 * 2,
+                                   fill='#fefefe')
+            image.paste(im=tmp_image, box=(0, 0), mask=image)
+            image = image.resize((380, 80), resample=Image.ANTIALIAS)
+            honor_thumbnails[seq] = image
+            honor_names[seq] = honor_name
+            honor_rarities[seq] = honor_rarity
         elif honor['profileHonorType'] == 'normal':
             honor_id = honor['honorId']
             seq = honor['seq'] - 1
@@ -104,12 +236,14 @@ async def prepare_honor_images(profile_honor: dict) -> tuple:
     return honor_thumbnails, honor_names, honor_rarities
 
 
-async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: int, idx: int, deck_images: list, leader: list):
+async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: int, idx: int, deck_images: list,
+                          leader: list):
     default_image = user_cards[idx]['defaultImage']
     assetbundle_name = deck_assets[str(card_id)]
 
     if default_image == 'original':
-        asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_cutout/{assetbundle_name}_rip/normal.png'
+        # asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_cutout/{assetbundle_name}_rip/normal.png'
+        asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/normal/normal.png'
         if not os.path.exists(
                 os.path.join(
                     os.path.dirname(__file__),
@@ -135,7 +269,8 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
                         os.path.dirname(__file__),
                         f'assets/character/member_cutout/{assetbundle_name}/normal'
                     ))
-            raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
+            # raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
+            raw_data = httpx.get(asset_url, headers=headers_pjsekai)
             with open(
                     os.path.join(
                         os.path.dirname(__file__),
@@ -149,36 +284,19 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
             ))
         deck_images.append(image)
         if idx == 0:
-            asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_small/{assetbundle_name}_rip/card_normal.png'
-            if not os.path.exists(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/character/member_small/{assetbundle_name}/card_normal.png'
-                    )):
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}'
-                        )):
-                    os.mkdir(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}'
-                        ))
-                raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
-                with open(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}/card_normal.png'
-                        ), 'wb') as f:
-                    f.write(raw_data.content)
+            asset_exist = check_local_card_asset(assetbundle_name, 'normal')
+            if asset_exist:
+                pass
+            else:
+                get_card_asset(asset_name=assetbundle_name, status= 'normal')
             leader.append(Image.open(
                 os.path.join(
                     os.path.dirname(__file__),
                     f'assets/character/member_small/{assetbundle_name}/card_normal.png'
                 )))
     else:
-        asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_cutout/{assetbundle_name}_rip/after_training.png'
+        # asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_cutout/{assetbundle_name}_rip/after_training.png'
+        asset_url = f'https://assets.pjsek.ai/file/pjsekai-assets/startapp/character/member_cutout/{assetbundle_name}/after_training/after_training.png'
         if not os.path.exists(
                 os.path.join(
                     os.path.dirname(__file__),
@@ -204,7 +322,7 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
                         os.path.dirname(__file__),
                         f'assets/character/member_cutout/{assetbundle_name}/after_training'
                     ))
-            raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
+            raw_data = httpx.get(asset_url, headers=headers_pjsekai)
             with open(
                     os.path.join(
                         os.path.dirname(__file__),
@@ -218,35 +336,18 @@ async def get_card_assets(client, user_cards: list, deck_assets: dict, card_id: 
             ))
         deck_images.append(image)
         if idx == 0:
-            asset_url = f'https://sekai-res.dnaroma.eu/file/sekai-assets/character/member_small/{assetbundle_name}_rip/card_after_training.png'
-            if not os.path.exists(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
-                    )):
-                if not os.path.exists(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}'
-                        )):
-                    os.mkdir(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}'
-                        ))
-                raw_data = httpx.get(asset_url, headers=headers_sekaiviewer)
-                with open(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
-                        ), 'wb') as f:
-                    f.write(raw_data.content)
+            asset_exist = check_local_card_asset(assetbundle_name, 'after_training')
+            if asset_exist:
+                pass
+            else:
+                get_card_asset(asset_name=assetbundle_name, status= 'after_training')
             leader.append(Image.open(
                 os.path.join(
                     os.path.dirname(__file__),
                     f'assets/character/member_small/{assetbundle_name}/card_after_training.png'
                 )))
     print(idx)
+
 
 async def prepare_deck_images(data: dict) -> tuple:
     print('prepare deck data')
@@ -281,6 +382,7 @@ async def prepare_deck_images(data: dict) -> tuple:
     await asyncio.gather(*tasks)
 
     return deck_images, deck_frame_ids, leader
+
 
 @on_command('myprofile', aliases=['me', 'profile'], only_to_me=False)
 async def myprofile(session):
@@ -391,7 +493,6 @@ async def myprofile(session):
         for idx, rank in enumerate(data['userCharacters']):
             if idx == rank['characterId'] - 1:
                 chara_ranks[idx] = rank['characterRank']
-
 
         print('prepare image')
         print('prepare profile')
@@ -938,6 +1039,7 @@ async def myprofile(session):
         await session.send('通信エラー：接続ができません')
     else:
         pass
+
 
 @myprofile.args_parser
 async def _(session: CommandSession):
