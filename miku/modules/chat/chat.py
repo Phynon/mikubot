@@ -3,11 +3,71 @@ import os
 
 import json
 import nonebot
+import asyncio
 from nonebot import on_command, CommandSession
+from nonebot.message import CanceledException, message_preprocessor
 from miku.utils import check_favor, favor_up, favor_down
 
 
 # from .luka import Music_api
+
+blacklist = []
+
+async def remove_from_blacklist_active(user_id):
+    blacklist.remove(user_id)
+    print(f'{user_id} removed from blacklist')
+
+class Timer:
+    def __init__(self, timeout, callback):
+        self._timeout = timeout
+        self._callback = callback
+        self._task = asyncio.ensure_future(self._job())
+
+    async def _job(self):
+        await asyncio.sleep(self._timeout)
+        await self._callback()
+
+    def cancel(self):
+        self._task.cancel()
+
+class BlackListMaster:
+            def __init__(self):
+                self.timer = None
+
+            def set_timer(self, timeout, task):
+                self.timer = Timer(timeout, task)
+
+blacklist_master = BlackListMaster()
+
+def is_to_me(raw_message):
+    if '[CQ:at,qq=1297374188]' in raw_message:
+        return True
+    elif raw_message.startswith('miku'):
+        return True
+    elif raw_message.endswith('miku'):
+        return True
+    else:
+        return False
+
+
+@message_preprocessor
+async def black(bot, event, _):
+    print(blacklist)
+    if event['message'][0]['type'] == 'text':
+        message = event['raw_message']
+    if event.user_id in blacklist:
+        if is_to_me(message):
+            if '对不起' in message or 'orry' in message or 'ごめん' in message:
+                groups_meta_dir = os.path.join(os.path.dirname(__file__), '../metas/groups_meta.json')
+                with open(groups_meta_dir, 'r') as f:
+                    groups_meta = json.load(f)
+                await bot.send_group_msg(group_id=groups_meta['sekai'],
+                                         message='下次不要这样啦')
+                blacklist.remove(event.user_id)
+            else:
+                raise CanceledException(f'{event.user_id} in blacklist')
+        else:
+            raise CanceledException(f'{event.user_id} in blacklist')
 
 
 @on_command('zai?',
@@ -82,7 +142,6 @@ async def lovely_react(session):
             only_to_me=True)
 async def crawl_react(session):
     crawl_list = [
-        '不理你了 哼',
         '你才爬',
         'バ∼カ∼',
         '不会 你教我',
@@ -204,9 +263,17 @@ async def set_member_ban_broken_love(session):
     try:
         bot = session.bot
         group_id = session.event.group_id
-        await session.send('？')
-        await bot.set_group_ban(group_id=group_id, user_id=session.state['user_qq'],
-                                duration=session.state['time'] * 60)
+        user_id = session.state['user_qq']
+        # user_id = session.event.user_id
+        await session.send('？不理你了')
+        # await bot.set_group_ban(group_id=group_id, user_id=session.state['user_qq'],
+        #                         duration=session.state['time'] * 60)
+        blacklist.append(int(user_id))
+
+        async def remove_from_blacklist_wait():
+            blacklist.remove(int(user_id))
+            print(f'{user_id} removed from blacklist')
+        blacklist_master.set_timer(600, remove_from_blacklist_wait)
     except KeyError as identifier:
         pass
     else:
